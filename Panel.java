@@ -9,7 +9,7 @@ public class Panel extends JPanel {
     private Mass mass;
 
     public Panel() {
-        mass = new Mass(300, 200, 3, 3, Color.YELLOW, 10);
+        mass = new Mass(300, 200, 4, 3, Color.YELLOW, 10);
     }
 
     /**

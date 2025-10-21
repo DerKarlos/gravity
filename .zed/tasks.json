@@ -3,14 +3,8 @@
 // Example:
 [
   {
-    "label": "Sim",
-    "command": "javac Main.java && java Main",
-    "args": ["Java"]
-  },
-
-  {
     "label": "Main",
-    "command": "javac Main.java && java Main",
+    "command": "javac Main.java && javac Mass.java && javac Panel.java && java Main",
     "args": ["Java"]
   },
 
