@@ -1,0 +1,81 @@
+"OSM2World" and "Urban Eye 3D – JOSM 3D Viewer Plugin" are both written in Java. But I don't like Java beause you need to install an extra runtime (oposit to WASM). As JavaScritp has TypeScript (which I like), Java hase Kotlin (wich I also may like). And then "everything changed" because I learned: Kodlin can now build to native applications!
+
+https://kotlinlang.org/lp/10yearsofkotlin/past/
+
+2017: "JavaScript Support, first non Java target!"
+* We could run OSM2World in the Browser? But it IS running in the browser?! There is a frontend in JavaScript. It only needs to load and render GLB files. The main and complicated work of OSM2World is generating GLB files on server side (Unfortunately only for DACH and not that fast upating)
+* We could generate GLB in the browser?! To "online" process actual OSM data. And to process worldwide OSM data.
+
+"Urban Eye" is realtime, loading from OSM API in Josm and renders edits live. Could they both use the same 3D generation? A Java lib or even better a Kodlin lib. For OSM2World, Mattias Kerr would like to change from Java to CodLine. We could start with that and later separate a 3D generation lib for "all" tools.
+
+I have to do at last some Java training. And much CodLin training!
+As a training object, I could (again) write a gravity simulation.
+
+
+#### Install Notes:
+
+Java
+https://www.oracle.com/de/java/
+https://www.oracle.com/de/java/technologies/downloads/#jdk25-mac
+https://docs.oracle.com/en/java/javase/25/index.html
+JDK is installed.
+At Oracle I don't find any guide for newbees like me :-(
+https://www.w3schools.com/java/
+! Class names and files are case sensitive AND sould be Uppercasestarting
+i types are lowerc except non-pimitive/reference type /object String, Arrays,... can be null.
+? What is the difference of  "final" and "constant" ? constant did not work
+! Names can contain dollar signs
+i byte, short and long are int 8/16/64. No unsigned?
+# floats don't need a dot.0
+! float/double = n.nnf/d
+! Not bool but boolean
+? ASCII char myGrade = 'B' or 65   What about Unicode?
++ var cars = new ArrayList<String>();
++ int myInt = (int) myDouble;
+i String.length()  toUpperCase() indexOf("it") charAt(n) trim(" abc ") concat() EQUALS +
+! Compare String.equals() NOT with the ussual ==
+i Java counts positions from zero.
+! "It\'s alright."  "\\" = Backslash   \n	New Line	\t	Tab
+? For Math functions you need a prefix Math. (as for print() etc. Java is noisy.
+    Are there Macros? No! But just write a static void out(String text)
+! Math.sqrt() .cbrt() = cubicroot, hypot() Pythagoras
+i If an if statement has only one line of code, you can write it without curly braces { }
+i variable = (condition) ? expressionTrue :  expressionFalse;
+! switch needs a break ! and MAY have a default
+> Igit: for (int i = 0; i < 5; i++) {  Much Better: for (String car : cars) {
+v There is no for (String,Index : cars)
+! Only at classes, but no "this." for myMethod();
+i Method Overloading:  fn(int) and fn(float) is ok
+! main( could be in any class, not only main
+i Constructor: public Main(int x) {    this.x = x;
+? I do not understand the syntax of anonymus classes
+? A Enum is a "class" and hase values() i.e. to loop over it. can have attributes and methods?
+? Enum Constructor? Constructor of an option or the whole enum? Is the opton a sub-object?
+i try-with-resources with multible resources do how? By semicolon between resoures
+
+
+
+? Java seems oldfashioned but ok. What will Codlin make better but Java?
+
+Error on
+https://www.w3schools.com/java/java_operators_comparison.asp
+  System.out.println(passwordLength >= 8); // false, too short
+https://www.w3schools.com/java/java_arrays_reallife.asp
+    unneeded: int length = ages.length;
+https://www.w3schools.com/java/showjava.asp?filename=demo_api_scanner2
+    I could input a 2.5 in an int
+
+
+
+################################
+There are multible 2D apis. I use Swing(https://incusdata.com/blog/awt-vs-swing-vs-javafx)
+How to do a simple 2D game with render loop? Courses:
+good: https://peerdh.com/blogs/programming-insights/step-by-step-guide-to-creating-a-simple-2d-platformer-in-java
+short: https://codingtechroom.com/tutorial/java-creating-2d-games-with-java
+long: https://zetcode.com/javagames/
+25h youtube: https://www.freecodecamp.org/news/code-a-2d-game-engine-using-java/
+
+i A 3D render may be made on a immage and drawn on the canwas afterwards.
+
+
+https://levelup.gitconnected.com/3d-graphics-in-kotlin-multiplatform-without-any-dependencies-74ab694a337d
