@@ -6,20 +6,23 @@ public class Panel extends JPanel {
     static final int WINDOW_WIDTH = 640,
         WINDOW_HEIGHT = 480;
 
-    private Mass mass;
+    private Mass sol, earth;
 
     public Panel() {
-        mass = new Mass(300, 200, 4, 3, Color.YELLOW, 10);
+        sol = new Mass(300.f, 200.f, 0.f, 0.f, Color.YELLOW, 10);
+        earth = new Mass(500.f, 200.f, 0.f, 0.1f, Color.BLUE, 5);
     }
 
     /**
      * Called once each frame to handle essential game operations
      */
-    public void simulate() {
+    public void simulate(float dt) {
+        earth.drag(sol, dt);
         //move the mass one frame
-        mass.move();
+        sol.move(dt);
+        earth.move(dt);
         //edge check/bounce
-        mass.bounceOffEdges(0, WINDOW_HEIGHT);
+        earth.bounceOffEdges(0, WINDOW_HEIGHT);
     }
 
     /**
@@ -31,6 +34,7 @@ public class Panel extends JPanel {
         g.fillRect(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
 
         //draw the mass
-        mass.paint(g);
+        sol.draw(g);
+        earth.draw(g);
     }
 }

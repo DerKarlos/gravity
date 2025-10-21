@@ -13,7 +13,7 @@ public class Main {
     }
 
     //declare and initialize the frame
-    static JFrame frame = new JFrame("Pong");
+    static JFrame frame = new JFrame("Gravity Simulation");
 
     public static void main(String[] args) {
         // make it so program exits on close button click
@@ -36,15 +36,16 @@ public class Main {
         //show the window
         frame.setVisible(true);
 
+        final int DT_MS = 33;
         Timer timer = new Timer(
-            33,
+            DT_MS,
             new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent e) {
-                    //game logic
-                    sim.simulate();
+                    // simulation logic
+                    sim.simulate(DT_MS);
 
-                    //repaint the screen
+                    // draw / repaint the screen
                     sim.repaint();
                 }
             }

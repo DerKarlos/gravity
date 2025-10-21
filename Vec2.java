@@ -1,4 +1,8 @@
 /*******************************************************************************
+ *
+ * Copied from:
+ * https://github.com/jbox2d/jbox2d/tree/master/jbox2d-library/src/main/java/org/jbox2d/common
+ *
  * Copyright (c) 2013, Daniel Murphy
  * All rights reserved.
  *
