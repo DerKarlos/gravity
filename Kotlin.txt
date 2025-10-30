@@ -79,3 +79,15 @@ i A 3D render may be made on a immage and drawn on the canwas afterwards.
 
 
 https://levelup.gitconnected.com/3d-graphics-in-kotlin-multiplatform-without-any-dependencies-74ab694a337d
+
+
+
+
+################################################################
+
+KOTLIN
+
+https://www.w3schools.com/kotlin/index.php
+Grrr: "Kotlin is included in each IntelliJ IDEA". But if I don't use it? No exta install!
+And free for 30 days only?
+Besser so: brew install kotlin

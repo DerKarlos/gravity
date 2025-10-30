@@ -1,16 +1,11 @@
 // https://kevinsguides.com/guides/code/java/javaprojs/simple-2d-pong/
 // https://github.com/kevinsguides/java_simplepong/blob/main/Readme.md
 
-import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import javax.swing.*;
 
 public class Main {
-
-    static void out(String text) {
-        System.out.println(text);
-    }
 
     //declare and initialize the frame
     static JFrame frame = new JFrame("Gravity Simulation");
@@ -21,10 +16,7 @@ public class Main {
         // the size of the game will be 480x640, the size of the JFrame needs to be slightly larger
         frame.setSize(640, 508);
 
-        Rectangle r = frame.getBounds();
-        var h = r.height;
-        var w = r.width;
-        out("h: " + h + "  w: " + w); // h: 508  w: 640
+        // System.out.println("h: " + r.height + "  w: " + r.width);
 
         // disable window resizing
         Panel sim = new Panel();
@@ -36,14 +28,14 @@ public class Main {
         //show the window
         frame.setVisible(true);
 
-        final int DT_MS = 33;
+        final int DT_MS = 15;
         Timer timer = new Timer(
             DT_MS,
             new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent e) {
                     // simulation logic
-                    sim.simulate(DT_MS);
+                    sim.simulate(DT_MS * 1000); // 1000000 times faster orbit visualisation: about 10s per Earth orbit
 
                     // draw / repaint the screen
                     sim.repaint();
