@@ -80,8 +80,17 @@ i A 3D render may be made on a immage and drawn on the canwas afterwards.
 
 https://levelup.gitconnected.com/3d-graphics-in-kotlin-multiplatform-without-any-dependencies-74ab694a337d
 
+Nice:
+val greeting = if (time < 18) {  "Good day."} else {  "Good evening."}
+val result = when (day) {  1 -> "Monday";  2 -> "Tuesday";  else -> "Invalid day." }
+Bool: if ("Volvo" in cars) {
+Loop: for (x in cars) {     or    for (char in 'a'..'x') {   Note: 1st and last is included
 
+Well:
+val cars = arrayOf("Volvo", "BMW", "Ford", "Mazda")
 
+What?:
+It is String.lenght and Array.size  both without ()
 
 ################################################################
 
@@ -91,3 +100,6 @@ https://www.w3schools.com/kotlin/index.php
 Grrr: "Kotlin is included in each IntelliJ IDEA". But if I don't use it? No exta install!
 And free for 30 days only?
 Besser so: brew install kotlin
+
+OO!:
+val c1 = Car(); c1.brand = "Ford"  or short: val c1 = Car("Ford",
