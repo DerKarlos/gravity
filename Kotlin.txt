@@ -96,8 +96,12 @@ It is String.lenght and Array.size  both without ()
 
 KOTLIN
 
-https://www.w3schools.com/kotlin/index.php
-Grrr: "Kotlin is included in each IntelliJ IDEA". But if I don't use it? No exta install!
+This is to simple https://www.w3schools.com/kotlin/index.php
+This is detailed: https://kotlinlang.org/docs/home.html
+Oh hell, Kotlin isn't as simple, there is a lot of functions / syntatic shugger:
+- constructor, init, toIntOrNull, ...
+
+Grrr: "Kotlin is included in each IntelliJ IDEA". But if I don't use it? No extra install!
 And free for 30 days only?
 Besser so: brew install kotlin
 

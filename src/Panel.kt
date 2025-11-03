@@ -2,6 +2,26 @@ import java.awt.Color
 import java.awt.Graphics
 import javax.swing.JPanel
 
+
+
+// dynamic Class variables
+const val WINDOW_WIDTH: Int = 1000
+const val WINDOW_HEIGHT: Int = 680 // ??? calculate frame
+val WINDOW_CENTER: Vec2 = Vec2(
+    (WINDOW_WIDTH / 2).toDouble(),
+    (WINDOW_HEIGHT / 2).toDouble()
+)
+
+// Die kleinere Ausdehnung zählt als normaler darstellbar Bildpunktebereich
+// The smallest extend of the window counts as visible screen range
+val PIXEL: Int = (WINDOW_WIDTH / 2).coerceAtMost(WINDOW_HEIGHT / 2)
+
+// static final Double g = 6.67384e-11f; //         gravity constant    m^3/(kg*^2)
+//val aKey: Double = 1e-7 //             truster power
+
+//val sTag: Double = 60.0 * 60 * 24 //     Seconds per day  ~10000    1e4
+//val sJahr: Double = sTag * 364.25 //   Seconds per year ~4000'000 4e6
+
 class Panel : JPanel() {
     // dynamic Class variables
     private val zView = 1.2
@@ -9,25 +29,26 @@ class Panel : JPanel() {
     // The simulation only uses real measurement units (SI-Units???)
     val dSun: Double = 1.3914e6 //          Sol diameter in km
     val dEar: Double = 12756.32 //        Earth diameter in km
-    //val dJup: Double = 142984.0 //      Jupiter diameter in km
-    val dLun: Double = 3476.0 //           Luna diameter in km
+    //l dJup: Double = 142984.0 //      Jupiter diameter in km
+    val dLun: Double = 3476.0   //         Luna diameter in km
 
     val mSun: Double = 1.989e30 //          Sol mass in kg
     val mEar: Double = 5.974e24 //        Earth mass in kg
-    //val mJup: Double = 1.899e27 //      Jupiter mass in kg
+    //l mJup: Double = 1.899e27 //      Jupiter mass in kg
     val mLun: Double = 7.349e22 //         Luna mass in kg
 
 
     //                   Position.x,      .y, Speed.x,y,    color,  mass, diameter
-    private var sun = Mass(0.0, 0.0, 0.0, 0.0, Color.YELLOW, mSun, dSun)
-    private val mercury = Mass(0.0, .4, 0.0000003, .0, Color.RED, mLun, dLun)
-    private val venus = Mass(0.0, .8, 0.00000015, .0, Color.GRAY, mEar, dEar)
-    private val earth = Mass(0.0, 1.0, 0.0000001, .0, Color.BLUE, mEar, dEar)
+    private var sun     = Mass(0.0, 0.0, 00.0,0.0, Color.YELLOW, mSun, dSun,"sun")
+    private val mercury = Mass(0.0, 0.4, 40e3,0.0, Color.RED, mLun, dLun,"mercury")
+    private val venus   = Mass(0.0, 0.8, 25e3,0.0, Color.GRAY, mEar, dEar,"venus")
+    private val earth   = Mass(0.0, 1.0, 25e3,0.0, Color.BLUE, mEar, dEar,"earth")
+        //0.00000010,
 
-    /**
+    /**                                                                       ¸
      * Called once each frame to handle essential game operations
      */
-    fun simulate(dt: Double) {
+    fun move(dt: Double) {
         // calc accelerations caused by masses
         earth.draggedBy(sun)
         venus.draggedBy(sun)
@@ -62,26 +83,9 @@ class Panel : JPanel() {
     }
 
     fun scale(position: Vec2): Vec2 {
-        return position.mul(pixel / zView).add(WINDOW_CENTER)
+        return position.mul(PIXEL / zView / Mass.M_AE).add(WINDOW_CENTER)
     }
 
-    companion object {
-        // dynamic Class variables
-        const val WINDOW_WIDTH: Int = 640
-        const val WINDOW_HEIGHT: Int = 480 // ??? calculate frame
-        val WINDOW_CENTER: Vec2 = Vec2(
-            (WINDOW_WIDTH / 2).toDouble(),
-            (WINDOW_HEIGHT / 2).toDouble()
-        )
-
-        // Die kleinere Ausdehnung zählt als normaler darstellbar Bildpunktebereich
-        // The smallest extend of the window counts as visible screen range
-        val pixel: Int = Math.min(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2)
-
-        // static final Double g = 6.67384e-11f; //         gravity constant    m^3/(kg*^2)
-        //val aKey: Double = 1e-7 //             truster power
-
-        //val sTag: Double = 60.0 * 60 * 24 //     Seconds per day  ~10000    1e4
-        //val sJahr: Double = sTag * 364.25 //   Seconds per year ~4000'000 4e6
-    }
+    // companion object {
+    // }
 }

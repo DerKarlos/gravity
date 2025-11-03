@@ -2,3 +2,5 @@
 /.idea
 /hide
 src/.DS_Store
+.DS_Store
+/out

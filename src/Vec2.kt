@@ -1,6 +1,7 @@
 import kotlin.math.sqrt
 
-class Vec2 @JvmOverloads constructor(var x: Double = 0.0, var y: Double = 0.0) {
+class Vec2 @JvmOverloads
+    constructor(var x: Double = 0.0, var y: Double = 0.0) {
     // constructor(toCopy: Vec2) : this(toCopy.x, toCopy.y)
 
     /** A "close to zero" float epsilon value for use  */
@@ -25,6 +26,11 @@ class Vec2 @JvmOverloads constructor(var x: Double = 0.0, var y: Double = 0.0) {
     /** Return this vector multiplied by a scalar; does not alter this vector.  */
     fun mul(a: Double): Vec2 {
         return Vec2(x * a, y * a)
+    }
+
+    /** Return this vector divided by a scalar; does not alter this vector.  */
+    fun div(a: Double): Vec2 {
+        return Vec2(x / a, y / a)
     }
 
     /** Return the length of this vector.  */
