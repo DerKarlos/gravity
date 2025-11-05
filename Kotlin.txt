@@ -107,3 +107,15 @@ Besser so: brew install kotlin
 
 OO!:
 val c1 = Car(); c1.brand = "Ford"  or short: val c1 = Car("Ford",
+
+
+
+----------------------------
+
+Looks like the project Java/Kodlin is canceled.
+Back to Rust.
+And try a simple 2D engine: macroquad
+
+https://docs.rs/macroquad/latest/macroquad
+https://github.com/not-fl3/macroquad
+https://doc.rust-lang.org/reference

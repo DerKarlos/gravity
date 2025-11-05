@@ -1,6 +1,12 @@
 *.class
+*.lock
 /.idea
 /hide
 src/.DS_Store
 .DS_Store
 /out
+/examples
+/java
+java/Mass.java
+/kotlin
+/target

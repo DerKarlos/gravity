@@ -3,6 +3,27 @@
 // Example:
 [
   {
+    "label": "Run",
+    "use_new_terminal": false,
+    "command": "cargo run",
+    "args": ["Rust"]
+  },
+
+  {
+    "label": "example: first_person",
+    "use_new_terminal": false,
+    "command": "RUST_BACKTRACE=1 cargo run --example first_person",
+    "tags": ["example"]
+  },
+
+  {
+    "label": "example: 3D",
+    "use_new_terminal": false,
+    "command": "RUST_BACKTRACE=1 cargo run --example 3d",
+    "tags": ["example"]
+  },
+
+  {
     "label": "Java",
     "command": "cd java && javac Main.java && javac Mass.java && javac Panel.java && java Main",
     "args": ["Java"]
