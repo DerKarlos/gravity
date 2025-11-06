@@ -29,9 +29,9 @@ pub struct MassData<'a> {
     pub py_ae: f64,
     pub vx_ae: f64,
     pub vy_ae: f64,
-    pub orbits: Option<&'a Mass>,
 }
 
+#[derive(Debug, Clone)]
 pub struct Mass {
     position: Vec2,
     velocity: Vec2,
@@ -45,26 +45,12 @@ pub struct Mass {
 impl Mass {
     // "Static" constants
 
-    pub fn new(data: &MassData) -> Self {
+    pub fn new(data: &MassData, orbits: Option<&mut Mass>) -> Mass {
         let position = Vec2::new(data.px_ae * M_AE, data.py_ae * M_AE);
-        let mut velocity = Vec2::new(data.vx_ae, data.vy_ae);
+        let velocity = Vec2::new(data.vx_ae, data.vy_ae);
         let acceleration = Vec2::new(0.0, 0.0);
 
-        let parent_option = data.orbits;
-        if parent_option.is_some() {
-            let parent = data.orbits.unwrap();
-            let rel = position.sub(parent.position);
-            let r = rel.length();
-            if r > 0.0 {
-                let v_mag = Self::v_orbit(parent.mass, r);
-                // perpendicular direction to radius for circular orbit
-                let tangential = Vec2::new(-rel.y / r, rel.x / r);
-                let orbit_velocity = tangential.mul(v_mag).add(parent.velocity);
-                velocity = velocity.add(orbit_velocity);
-            }
-        }
-
-        Mass {
+        let mut mass = Mass {
             _name: data.name.to_string(),
             color: data.color,
             diameter: data.diameter_km * 1000.0, // km → m
@@ -72,39 +58,67 @@ impl Mass {
             position,
             velocity,
             acceleration,
-        }
-    }
+        };
 
-    /*
-    pub fn _new(
-        x: f64,
-        y: f64,
-        vx: f64,
-        vy: f64,
-        color: Color,
-        mass: f64,
-        diameter_km: f64,
-        name: &str,
-    ) -> Self {
-        let position = Vec2::new(x * M_AE, y * M_AE);
-        let velocity = Vec2::new(vx, vy);
-        let acceleration = Vec2::new(0.0, 0.0);
-
-        Mass {
-            position,
-            velocity,
-            acceleration,
-            color,
-            _name: name.to_string(),
-            mass,
-            diameter: diameter_km * 1000.0, // km → m
+        if orbits.is_none() {
+            return mass;
         }
+
+        let mut parent = orbits.unwrap();
+        // let rel = position.sub(parent.position);
+        // let r = rel.length();
+        // if r == 0.0 {
+        //     return mass;
+        // }
+
+        Self::mass_v_orbit(&mut mass, &mut parent);
+
+        // let v_mag = Self::v_orbit(parent.mass, r);
+        // // perpendicular direction to radius for circular orbit
+        // let tangential = Vec2::new(-rel.y / r, rel.x / r);
+        // let orbit_velocity = tangential.mul(v_mag);
+        // mass.velocity = velocity.add(orbit_velocity).add(parent.velocity);
+
+        return mass;
     }
-     */
 
     /// Computes orbital velocity for a circular orbit
     /// around a body with `central_mass` at distance `radius_m` (in meters)
-    fn v_orbit(central_mass: f64, radius_m: f64) -> f64 {
+
+    fn mass_v_orbit(mass: &mut Mass, other: &mut Mass) {
+        let signum = if mass.position.y > 0.0 { 1.0 } else { -1.0 };
+        mass.position.add(other.position);
+        let radius = other.position.sub(mass.position).length();
+
+        let both_masses = mass.mass + other.mass;
+        let velocity = (GRAVITY_CONSTANT_OF_EARTH * both_masses / radius).sqrt();
+        mass.velocity.x += velocity / both_masses * other.mass * -signum;
+        other.velocity.x += -velocity / both_masses * mass.mass * -signum;
+
+        /* * /
+        with (m) {
+            var si  = py>0 ? +1 : -1;
+              // Positon und Geschwindigkeit der neuen Masse ist relativ zur umkreisten Masse
+                  px += o.px;  vx += o.vx;
+                  py += o.py;  vy += o.vy;
+            var r   = Phytagoras(  o.px-px
+                                          ,  o.py-py);           // Radius/Abstand, Masse zur anderen Masse
+              // console.log(o.px,px,o.py,py,r,'x,x,y,y,r')
+                  // Für Kreisbahn notwendige Geschwindigkeit errechnen
+                  r   = r * mAE;
+            var mpm = mass + o.mass;
+            var v   = Math.sqrt(2*g*mpm/r);  // wikipedia: Fluchtgeschwindigkeit - Zweite kosmische Geschwindigkeit,
+                  // Geschwindigkeit entsprechend der Massen verteilen
+                  v   = v / mAE;  // Aus m/s^2 werden AE/s^2
+                      vx += +v / mpm * o.mass * -si; // Eigene v für Orbit
+                  o.vx += -v / mpm *   mass * -si; // Andere v für Orbit
+              // console.log(m,o,r,mpm,v,vx,o.vx,'(m,o,r,mpm,v,vx,o.vx)')
+          }
+        }
+        / * */
+    }
+
+    fn _v_orbit(central_mass: f64, radius_m: f64) -> f64 {
         (GRAVITY_CONSTANT_OF_EARTH * central_mass / radius_m).sqrt()
     }
 
@@ -152,6 +166,49 @@ fn scale(position: &Vec2) -> Vec2 {
     position
         .mul(PIXEL as f64 / z_view / M_AE)
         .add(WINDOW_CENTER)
+}
+
+// ------------------- MASSES STRUCT/CLASS -------------------
+pub struct Masses {
+    masses: Vec<Mass>,
+}
+
+impl Masses {
+    pub fn new() -> Masses {
+        Masses { masses: Vec::new() }
+    }
+
+    pub fn add_at_place(&mut self, data: &MassData) -> usize {
+        let mass = Mass::new(data, None);
+        self.masses.push(mass);
+        self.masses.len() - 1
+    }
+
+    pub fn add_in_orbit(&mut self, data: &MassData, orbits: usize) -> usize {
+        let orbits = &mut self.masses[orbits];
+        let mass = Mass::new(data, Some(orbits));
+        self.masses.push(mass);
+        self.masses.len() - 1
+    }
+
+    pub fn frame(&mut self, seconds_per_frame: f64) {
+        // each mass drags each other mass, except itselfes
+        for mass_index in 0..self.masses.len() {
+            // todo: don't clone
+            let mass = self.masses[mass_index].clone();
+            for dragged in &mut self.masses {
+                // todo: no string compare
+                if mass._name != dragged._name {
+                    dragged.dragged_by(&mass);
+                }
+            }
+        }
+
+        for mass in &mut self.masses {
+            mass.frame_move(seconds_per_frame);
+            mass.draw();
+        }
+    }
 }
 
 // ------------------- VEC2 STRUCT/CLASS -------------------

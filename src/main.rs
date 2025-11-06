@@ -16,6 +16,7 @@ fn conf() -> Conf {
 
 #[macroquad::main(conf)]
 async fn main() {
+    // some masses
     let sun_data = MassData {
         name: "sun",
         color: YELLOW,
@@ -25,10 +26,18 @@ async fn main() {
         py_ae: 0.0,
         vx_ae: 0.0,
         vy_ae: 0.0,
-        orbits: None,
     };
 
-    let sun = Mass::new(&sun_data);
+    let sun2_data = MassData {
+        name: "sun2",
+        color: GOLD,
+        diameter_km: 1.3914e6,
+        mass: 1.989e30,
+        px_ae: 0.0,
+        py_ae: -0.5,
+        vx_ae: 0.0,
+        vy_ae: 0.0,
+    };
 
     let earth_data = MassData {
         name: "earth",
@@ -39,12 +48,9 @@ async fn main() {
         py_ae: -1.0,
         vx_ae: 0.0,
         vy_ae: 0.0,
-        orbits: Some(&sun),
     };
 
-    let mut earth = Mass::new(&earth_data);
-
-    let luna_data = MassData {
+    let _luna_data = MassData {
         name: "luna",
         color: RED,
         diameter_km: 3476.0,
@@ -53,10 +59,7 @@ async fn main() {
         py_ae: -1.0002,
         vx_ae: 0.0,
         vy_ae: 0.0,
-        orbits: Some(&earth),
     };
-
-    let mut luna = Mass::new(&luna_data);
 
     let _jupiter_data = MassData {
         name: "jupiter",
@@ -67,7 +70,23 @@ async fn main() {
         py_ae: 1.0,
         vx_ae: 25e3,
         vy_ae: 0.0,
-        orbits: Some(&sun),
+    };
+
+    let mut masses = Masses::new();
+
+    let text = match 1 {
+        1 => {
+            let sun = masses.add_at_place(&sun_data);
+            masses.add_in_orbit(&sun2_data, sun);
+            "Doublestar"
+        }
+
+        _ => {
+            let sun = masses.add_at_place(&sun_data);
+            let _earth = masses.add_in_orbit(&earth_data, sun);
+            //masses.add_in_orbit(&luna_data, earth);
+            "Sun Earth"
+        }
     };
 
     loop {
@@ -81,25 +100,11 @@ async fn main() {
         const SECONDS_PER_ORBIT: f64 = SECONDS_PER_YEAR / 10.;
         let seconds_per_frame = delta_time * SECONDS_PER_ORBIT;
 
-        // simulation logic
-        //simulation.move(seconds_per_frame);
-
-        // draw / repaint the screen
-        //simulation.repaint();
-
         clear_background(GRAY);
-        draw_text("Hello, Macroquad", 20.0, 20.0, 30.0, DARKGRAY);
+        draw_text(text, 20.0, 20.0, 30.0, DARKGRAY);
 
-        earth.dragged_by(&sun);
-        earth.dragged_by(&luna);
-        luna.dragged_by(&earth);
-
-        earth.frame_move(seconds_per_frame);
-        luna.frame_move(seconds_per_frame);
-
-        sun.draw();
-        earth.draw();
-        luna.draw();
+        // simulation logic and drawing
+        masses.frame(seconds_per_frame);
 
         next_frame().await
     }
