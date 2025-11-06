@@ -1,7 +1,6 @@
+.DS_Store
 *.lock
 /hide
-.DS_Store
 /examples
 /java
 /target
-.DS_Store
