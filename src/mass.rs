@@ -1,4 +1,5 @@
 use macroquad::prelude::*;
+use std::ops;
 
 const WINDOW_WIDTH: i32 = 1000;
 const WINDOW_HEIGHT: i32 = 680; // ??? calculate frame
@@ -46,8 +47,8 @@ impl Mass {
 
     pub fn new(data: &MassData, orbits: Option<&mut Mass>) -> Mass {
         let position = Vec2::new(0.0, data.radius);
-        let velocity = Vec2::null();
-        let acceleration = Vec2::null();
+        let velocity = Vec2::ZERO;
+        let acceleration = Vec2::ZERO;
 
         let mut mass = Mass {
             name: data.name.to_string(),
@@ -59,24 +60,9 @@ impl Mass {
             acceleration,
         };
 
-        if orbits.is_none() {
-            return mass;
+        if orbits.is_some() {
+            Self::mass_v_orbit(&mut mass, &mut orbits.unwrap(), data.excentricity);
         }
-
-        let mut parent = orbits.unwrap();
-        // let rel = position.sub(parent.position);
-        // let r = rel.length();
-        // if r == 0.0 {
-        //     return mass;
-        // }
-
-        Self::mass_v_orbit(&mut mass, &mut parent, data.excentricity);
-
-        // let v_mag = Self::v_orbit(parent.mass, r);
-        // // perpendicular direction to radius for circular orbit
-        // let tangential = Vec2::new(-rel.y / r, rel.x / r);
-        // let orbit_velocity = tangential.mul(v_mag);
-        // mass.velocity = velocity.add(orbit_velocity).add(parent.velocity);
 
         return mass;
     }
@@ -86,37 +72,15 @@ impl Mass {
 
     fn mass_v_orbit(mass: &mut Mass, other: &mut Mass, excentriticy: f64) {
         let signum = if mass.position.y > 0.0 { 1.0 } else { -1.0 };
-        mass.position = mass.position.add(other.position);
-        mass.velocity = mass.velocity.add(other.velocity);
-        let radius = other.position.sub(mass.position).length();
+        mass.position += other.position;
+        mass.velocity += other.velocity;
+        let radius = (other.position - mass.position).length();
 
         let both_masses = mass.mass + other.mass;
         let velocity =
             (GRAVITY_CONSTANT_OF_EARTH * both_masses / radius).sqrt() * (1. - excentriticy);
         mass.velocity.x += velocity / both_masses * other.mass * signum;
         other.velocity.x += -velocity / both_masses * mass.mass * signum;
-
-        /* * /
-        with (m) {
-            var si  = py>0 ? +1 : -1;
-              // Positon und Geschwindigkeit der neuen Masse ist relativ zur umkreisten Masse
-                  px += o.px;  vx += o.vx;
-                  py += o.py;  vy += o.vy;
-            var r   = Phytagoras(  o.px-px
-                                          ,  o.py-py);           // Radius/Abstand, Masse zur anderen Masse
-              // console.log(o.px,px,o.py,py,r,'x,x,y,y,r')
-                  // Für Kreisbahn notwendige Geschwindigkeit errechnen
-                  r   = r * mAE;
-            var mpm = mass + o.mass;
-            var v   = Math.sqrt(2*g*mpm/r);  // wikipedia: Fluchtgeschwindigkeit - Zweite kosmische Geschwindigkeit,
-                  // Geschwindigkeit entsprechend der Massen verteilen
-                  v   = v / mAE;  // Aus m/s^2 werden AE/s^2
-                      vx += +v / mpm * o.mass * -si; // Eigene v für Orbit
-                  o.vx += -v / mpm *   mass * -si; // Andere v für Orbit
-              // console.log(m,o,r,mpm,v,vx,o.vx,'(m,o,r,mpm,v,vx,o.vx)')
-          }
-        }
-        / * */
     }
 
     fn _v_orbit(central_mass: f64, radius: f64) -> f64 {
@@ -128,22 +92,22 @@ impl Mass {
             return; // don’t drag self or zero-mass objects
         }
 
-        let mut distance_vector = other.position.sub(self.position);
+        let mut distance_vector = other.position - self.position;
         let distance = distance_vector.length();
 
         if distance < MAX_GRAVITY_DISTANCE * M_AE {
             distance_vector.normalize();
 
             let acceleration = other.mass / (distance * distance) * GRAVITY_CONSTANT_OF_EARTH;
-            let acceleration_vector = distance_vector.mul(acceleration);
+            let acceleration_vector = distance_vector * acceleration;
 
-            self.acceleration = self.acceleration.add(acceleration_vector);
+            self.acceleration += acceleration_vector;
         }
     }
 
     pub fn frame_move(&mut self, dt: f64) {
-        self.velocity = self.velocity.add(self.acceleration.mul(dt));
-        self.position = self.position.add(self.velocity.mul(dt));
+        self.velocity += self.acceleration * dt;
+        self.position += self.velocity * dt;
         self.acceleration.set_zero();
     }
 
@@ -152,7 +116,7 @@ impl Mass {
         let mut size = ((self.diameter / M_AE).sqrt().sqrt() / 2.0 * DRAW_FACT) as i32;
         size = size.clamp(DRAW_MIN, DRAW_MAX);
 
-        let screen_pos = scale(&self.position);
+        let screen_pos = scale(self.position);
         draw_circle(
             screen_pos.x as f32,
             screen_pos.y as f32,
@@ -162,11 +126,9 @@ impl Mass {
     }
 }
 
-fn scale(position: &Vec2) -> Vec2 {
+fn scale(position: Vec2) -> Vec2 {
     let z_view = 1.2;
-    position
-        .mul(PIXEL as f64 / z_view / M_AE)
-        .add(WINDOW_CENTER)
+    position * (PIXEL as f64 / z_view / M_AE) + WINDOW_CENTER
 }
 
 // ------------------- MASSES STRUCT/CLASS -------------------
@@ -220,28 +182,63 @@ struct Vec2 {
     y: f64,
 }
 
+impl ops::Add<Vec2> for Vec2 {
+    type Output = Self;
+
+    fn add(self, other: Vec2) -> Vec2 {
+        Vec2 {
+            x: self.x + other.x,
+            y: self.y + other.y,
+        }
+    }
+}
+
+impl ops::AddAssign<Vec2> for Vec2 {
+    fn add_assign(&mut self, other: Vec2) {
+        self.x += other.x;
+        self.y += other.y;
+    }
+}
+
+impl ops::Sub<Vec2> for Vec2 {
+    type Output = Self;
+
+    fn sub(self, other: Vec2) -> Vec2 {
+        Vec2 {
+            x: self.x - other.x,
+            y: self.y - other.y,
+        }
+    }
+}
+
+impl ops::Mul<f64> for Vec2 {
+    type Output = Self;
+
+    fn mul(self, scalar: f64) -> Vec2 {
+        Vec2::new(self.x * scalar, self.y * scalar)
+    }
+}
+
 impl Vec2 {
+    const ZERO: Self = Self { x: 0.0, y: 0.0 };
+
     fn new(x: f64, y: f64) -> Self {
         Self { x, y }
-    }
-
-    fn null() -> Self {
-        Self { x: 0.0, y: 0.0 }
     }
 
     fn length(&self) -> f64 {
         (self.x * self.x + self.y * self.y).sqrt()
     }
 
-    fn add(&self, other: Vec2) -> Vec2 {
+    fn _add(&self, other: Vec2) -> Vec2 {
         Vec2::new(self.x + other.x, self.y + other.y)
     }
 
-    fn sub(&self, other: Vec2) -> Vec2 {
+    fn _sub(&self, other: Vec2) -> Vec2 {
         Vec2::new(self.x - other.x, self.y - other.y)
     }
 
-    fn mul(&self, scalar: f64) -> Vec2 {
+    fn _mul(&self, scalar: f64) -> Vec2 {
         Vec2::new(self.x * scalar, self.y * scalar)
     }
 

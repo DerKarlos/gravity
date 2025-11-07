@@ -100,6 +100,7 @@ async fn main() {
             delta_time = 0.1
         };
 
+        //nst SECONDS_PER_ORBIT: f64 = 10.;
         const SECONDS_PER_YEAR: f64 = 60. * 60. * 24. * 365.;
         const SECONDS_PER_ORBIT: f64 = SECONDS_PER_YEAR / 10.;
         let seconds_per_frame = delta_time * SECONDS_PER_ORBIT;
