@@ -20,15 +20,14 @@ const PIXEL: i32 = WINDOW_HEIGHT / 2; // todo: do it dynamic!
 
 // ------------------- MASS STRUCT/CLASS -------------------
 
+#[derive(Debug, Default)]
 pub struct MassData<'a> {
     pub name: &'a str,
     pub color: Color,
     pub diameter_km: f64,
     pub mass: f64,
-    pub px_ae: f64,
-    pub py_ae: f64,
-    pub vx_ae: f64,
-    pub vy_ae: f64,
+    pub radius: f64,
+    pub excentricity: f64,
 }
 
 #[derive(Debug, Clone)]
@@ -46,9 +45,9 @@ impl Mass {
     // "Static" constants
 
     pub fn new(data: &MassData, orbits: Option<&mut Mass>) -> Mass {
-        let position = Vec2::new(data.px_ae * M_AE, data.py_ae * M_AE);
-        let velocity = Vec2::new(data.vx_ae, data.vy_ae);
-        let acceleration = Vec2::new(0.0, 0.0);
+        let position = Vec2::new(0.0, data.radius * M_AE);
+        let velocity = Vec2::null();
+        let acceleration = Vec2::null();
 
         let mut mass = Mass {
             _name: data.name.to_string(),
@@ -71,7 +70,7 @@ impl Mass {
         //     return mass;
         // }
 
-        Self::mass_v_orbit(&mut mass, &mut parent);
+        Self::mass_v_orbit(&mut mass, &mut parent, data.excentricity);
 
         // let v_mag = Self::v_orbit(parent.mass, r);
         // // perpendicular direction to radius for circular orbit
@@ -85,15 +84,16 @@ impl Mass {
     /// Computes orbital velocity for a circular orbit
     /// around a body with `central_mass` at distance `radius_m` (in meters)
 
-    fn mass_v_orbit(mass: &mut Mass, other: &mut Mass) {
+    fn mass_v_orbit(mass: &mut Mass, other: &mut Mass, excentriticy: f64) {
         let signum = if mass.position.y > 0.0 { 1.0 } else { -1.0 };
         mass.position.add(other.position);
         let radius = other.position.sub(mass.position).length();
 
         let both_masses = mass.mass + other.mass;
-        let velocity = (GRAVITY_CONSTANT_OF_EARTH * both_masses / radius).sqrt();
-        mass.velocity.x += velocity / both_masses * other.mass * -signum;
-        other.velocity.x += -velocity / both_masses * mass.mass * -signum;
+        let velocity =
+            (GRAVITY_CONSTANT_OF_EARTH * both_masses / radius).sqrt() * (1. - excentriticy);
+        mass.velocity.x += velocity / both_masses * other.mass * signum;
+        other.velocity.x += -velocity / both_masses * mass.mass * signum;
 
         /* * /
         with (m) {
@@ -222,6 +222,10 @@ struct Vec2 {
 impl Vec2 {
     fn new(x: f64, y: f64) -> Self {
         Self { x, y }
+    }
+
+    fn null() -> Self {
+        Self { x: 0.0, y: 0.0 }
     }
 
     fn length(&self) -> f64 {

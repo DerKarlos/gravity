@@ -22,10 +22,7 @@ async fn main() {
         color: YELLOW,
         diameter_km: 1.3914e6,
         mass: 1.989e30,
-        px_ae: 0.0,
-        py_ae: 0.0,
-        vx_ae: 0.0,
-        vy_ae: 0.0,
+        ..Default::default()
     };
 
     let sun2_data = MassData {
@@ -33,10 +30,8 @@ async fn main() {
         color: GOLD,
         diameter_km: 1.3914e6,
         mass: 1.989e30,
-        px_ae: 0.0,
-        py_ae: -0.5,
-        vx_ae: 0.0,
-        vy_ae: 0.0,
+        radius: 0.5,
+        ..Default::default()
     };
 
     let earth_data = MassData {
@@ -44,10 +39,8 @@ async fn main() {
         color: BLUE,
         diameter_km: 12756.32,
         mass: 5.974e24,
-        px_ae: 0.0,
-        py_ae: -1.0,
-        vx_ae: 0.0,
-        vy_ae: 0.0,
+        radius: 1.0,
+        ..Default::default()
     };
 
     let _luna_data = MassData {
@@ -55,10 +48,8 @@ async fn main() {
         color: RED,
         diameter_km: 3476.0,
         mass: 7.349e22,
-        px_ae: 0.0,
-        py_ae: -1.0002,
-        vx_ae: 0.0,
-        vy_ae: 0.0,
+        radius: -0.05,
+        ..Default::default()
     };
 
     let _jupiter_data = MassData {
@@ -66,26 +57,35 @@ async fn main() {
         color: GREEN,
         diameter_km: 142984.0,
         mass: 1.899e27,
-        px_ae: 0.0,
-        py_ae: 1.0,
-        vx_ae: 25e3,
-        vy_ae: 0.0,
+        radius: 25e3,
+        ..Default::default()
+    };
+
+    let comet_data = MassData {
+        name: "comet",
+        color: WHITE,
+        diameter_km: 500.0,
+        mass: 1e6,
+        radius: 1.3,
+        excentricity: 0.4,
+        ..Default::default()
     };
 
     let mut masses = Masses::new();
 
     let text = match 1 {
-        1 => {
+        0 => {
             let sun = masses.add_at_place(&sun_data);
             masses.add_in_orbit(&sun2_data, sun);
-            "Doublestar"
+            "double star"
         }
 
         _ => {
             let sun = masses.add_at_place(&sun_data);
             let _earth = masses.add_in_orbit(&earth_data, sun);
             //masses.add_in_orbit(&luna_data, earth);
-            "Sun Earth"
+            masses.add_in_orbit(&comet_data, sun);
+            "Sun & Earth"
         }
     };
 
@@ -94,7 +94,10 @@ async fn main() {
             break;
         }
 
-        let delta_time: f64 = get_frame_time().into();
+        let mut delta_time: f64 = get_frame_time().into();
+        if delta_time > 0.1 {
+            delta_time = 0.1
+        };
 
         const SECONDS_PER_YEAR: f64 = 60. * 60. * 24. * 365.;
         const SECONDS_PER_ORBIT: f64 = SECONDS_PER_YEAR / 10.;
