@@ -24,7 +24,7 @@ const PIXEL: i32 = WINDOW_HEIGHT / 2; // todo: do it dynamic!
 pub struct MassData<'a> {
     pub name: &'a str,
     pub color: Color,
-    pub diameter_km: f64,
+    pub diameter: f64,
     pub mass: f64,
     pub radius: f64,
     pub excentricity: f64,
@@ -36,7 +36,7 @@ pub struct Mass {
     velocity: Vec2,
     acceleration: Vec2,
     color: Color,
-    _name: String,
+    name: String,
     mass: f64,
     diameter: f64,
 }
@@ -45,14 +45,14 @@ impl Mass {
     // "Static" constants
 
     pub fn new(data: &MassData, orbits: Option<&mut Mass>) -> Mass {
-        let position = Vec2::new(0.0, data.radius * M_AE);
+        let position = Vec2::new(0.0, data.radius);
         let velocity = Vec2::null();
         let acceleration = Vec2::null();
 
         let mut mass = Mass {
-            _name: data.name.to_string(),
+            name: data.name.to_string(),
             color: data.color,
-            diameter: data.diameter_km * 1000.0, // km → m
+            diameter: data.diameter,
             mass: data.mass,
             position,
             velocity,
@@ -82,11 +82,12 @@ impl Mass {
     }
 
     /// Computes orbital velocity for a circular orbit
-    /// around a body with `central_mass` at distance `radius_m` (in meters)
+    /// around a body with `central_mass` at distance `radius` (in meters)
 
     fn mass_v_orbit(mass: &mut Mass, other: &mut Mass, excentriticy: f64) {
         let signum = if mass.position.y > 0.0 { 1.0 } else { -1.0 };
-        mass.position.add(other.position);
+        mass.position = mass.position.add(other.position);
+        mass.velocity = mass.velocity.add(other.velocity);
         let radius = other.position.sub(mass.position).length();
 
         let both_masses = mass.mass + other.mass;
@@ -118,8 +119,8 @@ impl Mass {
         / * */
     }
 
-    fn _v_orbit(central_mass: f64, radius_m: f64) -> f64 {
-        (GRAVITY_CONSTANT_OF_EARTH * central_mass / radius_m).sqrt()
+    fn _v_orbit(central_mass: f64, radius: f64) -> f64 {
+        (GRAVITY_CONSTANT_OF_EARTH * central_mass / radius).sqrt()
     }
 
     pub fn dragged_by(&mut self, other: &Mass) {
@@ -198,7 +199,7 @@ impl Masses {
             let mass = self.masses[mass_index].clone();
             for dragged in &mut self.masses {
                 // todo: no string compare
-                if mass._name != dragged._name {
+                if mass.name != dragged.name {
                     dragged.dragged_by(&mass);
                 }
             }

@@ -20,7 +20,7 @@ async fn main() {
     let sun_data = MassData {
         name: "sun",
         color: YELLOW,
-        diameter_km: 1.3914e6,
+        diameter: 1.3914e6 * 1000.,
         mass: 1.989e30,
         ..Default::default()
     };
@@ -28,45 +28,46 @@ async fn main() {
     let sun2_data = MassData {
         name: "sun2",
         color: GOLD,
-        diameter_km: 1.3914e6,
+        diameter: 1.3914e6 * 1000.,
         mass: 1.989e30,
-        radius: 0.5,
+        radius: 0.5 * M_AE,
         ..Default::default()
     };
 
     let earth_data = MassData {
         name: "earth",
         color: BLUE,
-        diameter_km: 12756.32,
+        diameter: 12756.32 * 1000.,
         mass: 5.974e24,
-        radius: 1.0,
+        radius: 1.0 * M_AE,
         ..Default::default()
     };
 
-    let _luna_data = MassData {
+    let luna_data = MassData {
         name: "luna",
         color: RED,
-        diameter_km: 3476.0,
+        diameter: 3476. * 1000.,
         mass: 7.349e22,
-        radius: -0.05,
+        radius: 370171. * 1000., // more but 0.005 AE makes the orbit insable.
+        // todo: excentricity: real value,
         ..Default::default()
     };
 
     let _jupiter_data = MassData {
         name: "jupiter",
         color: GREEN,
-        diameter_km: 142984.0,
+        diameter: 142984.0 * 1000.,
         mass: 1.899e27,
-        radius: 25e3,
+        radius: 25e3 * M_AE,
         ..Default::default()
     };
 
     let comet_data = MassData {
         name: "comet",
         color: WHITE,
-        diameter_km: 500.0,
+        diameter: 500.0 * 1000.,
         mass: 1e6,
-        radius: 1.3,
+        radius: 1.3 * M_AE,
         excentricity: 0.4,
         ..Default::default()
     };
@@ -82,8 +83,8 @@ async fn main() {
 
         _ => {
             let sun = masses.add_at_place(&sun_data);
-            let _earth = masses.add_in_orbit(&earth_data, sun);
-            //masses.add_in_orbit(&luna_data, earth);
+            let earth = masses.add_in_orbit(&earth_data, sun);
+            masses.add_in_orbit(&luna_data, earth);
             masses.add_in_orbit(&comet_data, sun);
             "Sun & Earth"
         }
