@@ -6,7 +6,14 @@
     "label": "Run",
     "use_new_terminal": false,
     "command": "cargo run",
-    "args": ["Rust"]
+    "tags": ["Rust"]
+  },
+
+  {
+    "label": "WASM",
+    "use_new_terminal": false,
+    "command": "cargo build --release --target wasm32-unknown-unknown && cp target/wasm32-unknown-unknown/release/gravity.wasm ./",
+    "tags": ["Rust"]
   },
 
   {

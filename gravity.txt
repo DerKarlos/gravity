@@ -122,3 +122,8 @@ https://doc.rust-lang.org/reference
 
 https://mq.agical.se/pdf/output.pdf
 https://elk.zone/mindly.social/tags/MacroQuad
+
+cargo install basic-http-server
+basic-http-server
+http://127.0.0.1:4000
+http://127.0.0.1:4000/index.html
