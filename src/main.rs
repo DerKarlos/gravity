@@ -95,10 +95,7 @@ async fn main() {
             break;
         }
 
-        let mut delta_time: f64 = get_frame_time().into();
-        if delta_time > 0.1 {
-            delta_time = 0.1
-        };
+        let delta_time: f64 = (get_frame_time() as f64).min(0.1);
 
         //nst SECONDS_PER_ORBIT: f64 = 10.;
         const SECONDS_PER_YEAR: f64 = 60. * 60. * 24. * 365.;
@@ -110,6 +107,7 @@ async fn main() {
 
         // simulation logic and drawing
         masses.frame(seconds_per_frame);
+        masses.draw();
 
         next_frame().await
     }

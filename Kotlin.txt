@@ -119,3 +119,6 @@ And try a simple 2D engine: macroquad
 https://docs.rs/macroquad/latest/macroquad
 https://github.com/not-fl3/macroquad
 https://doc.rust-lang.org/reference
+
+https://mq.agical.se/pdf/output.pdf
+https://elk.zone/mindly.social/tags/MacroQuad

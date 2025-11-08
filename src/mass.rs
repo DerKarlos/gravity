@@ -169,6 +169,11 @@ impl Masses {
 
         for mass in &mut self.masses {
             mass.frame_move(seconds_per_frame);
+        }
+    }
+
+    pub fn draw(&mut self) {
+        for mass in &mut self.masses {
             mass.draw();
         }
     }
