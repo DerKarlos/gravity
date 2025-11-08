@@ -28,12 +28,10 @@ jobs:
       - name: Prepare Deployment Directory
         run: |
           mkdir -p ./deploy
+          cd
+          ls
           cp index.html ./deploy/
-          ls
-          cp -r ./target/wasm32-unknown-unknown/release/gravity.wasm .
-          ls
-          cp -r . ./deploy/
-          ls
+          cp ./target/wasm32-unknown-unknown/release/my-game.wasm ./deploy/
 
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
