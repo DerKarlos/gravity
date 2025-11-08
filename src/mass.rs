@@ -1,9 +1,9 @@
+use crate::vecx::*;
 use macroquad::prelude::*;
-use std::ops;
 
 const WINDOW_WIDTH: i32 = 1000;
 const WINDOW_HEIGHT: i32 = 680; // ??? calculate frame
-const WINDOW_CENTER: Vec2 = Vec2 {
+const WINDOW_CENTER: VecX = VecX {
     x: (WINDOW_WIDTH / 2) as f64,
     y: (WINDOW_HEIGHT / 2) as f64,
 };
@@ -33,9 +33,9 @@ pub struct MassData<'a> {
 
 #[derive(Debug, Clone)]
 pub struct Mass {
-    position: Vec2,
-    velocity: Vec2,
-    acceleration: Vec2,
+    position: VecX,
+    velocity: VecX,
+    acceleration: VecX,
     color: Color,
     name: String,
     mass: f64,
@@ -46,9 +46,9 @@ impl Mass {
     // "Static" constants
 
     pub fn new(data: &MassData, orbits: Option<&mut Mass>) -> Mass {
-        let position = Vec2::new(0.0, data.radius);
-        let velocity = Vec2::ZERO;
-        let acceleration = Vec2::ZERO;
+        let position = VecX::new(0.0, data.radius);
+        let velocity = VecX::ZERO;
+        let acceleration = VecX::ZERO;
 
         let mut mass = Mass {
             name: data.name.to_string(),
@@ -126,7 +126,7 @@ impl Mass {
     }
 }
 
-fn scale(position: Vec2) -> Vec2 {
+fn scale(position: VecX) -> VecX {
     let z_view = 1.2;
     position * (PIXEL as f64 / z_view / M_AE) + WINDOW_CENTER
 }
@@ -176,88 +176,5 @@ impl Masses {
         for mass in &mut self.masses {
             mass.draw();
         }
-    }
-}
-
-// ------------------- VEC2 STRUCT/CLASS -------------------
-// use own file???
-#[derive(Clone, Copy, Debug)]
-struct Vec2 {
-    x: f64,
-    y: f64,
-}
-
-impl ops::Add<Vec2> for Vec2 {
-    type Output = Self;
-
-    fn add(self, other: Vec2) -> Vec2 {
-        Vec2 {
-            x: self.x + other.x,
-            y: self.y + other.y,
-        }
-    }
-}
-
-impl ops::AddAssign<Vec2> for Vec2 {
-    fn add_assign(&mut self, other: Vec2) {
-        self.x += other.x;
-        self.y += other.y;
-    }
-}
-
-impl ops::Sub<Vec2> for Vec2 {
-    type Output = Self;
-
-    fn sub(self, other: Vec2) -> Vec2 {
-        Vec2 {
-            x: self.x - other.x,
-            y: self.y - other.y,
-        }
-    }
-}
-
-impl ops::Mul<f64> for Vec2 {
-    type Output = Self;
-
-    fn mul(self, scalar: f64) -> Vec2 {
-        Vec2::new(self.x * scalar, self.y * scalar)
-    }
-}
-
-impl Vec2 {
-    const ZERO: Self = Self { x: 0.0, y: 0.0 };
-
-    fn new(x: f64, y: f64) -> Self {
-        Self { x, y }
-    }
-
-    fn length(&self) -> f64 {
-        (self.x * self.x + self.y * self.y).sqrt()
-    }
-
-    fn _add(&self, other: Vec2) -> Vec2 {
-        Vec2::new(self.x + other.x, self.y + other.y)
-    }
-
-    fn _sub(&self, other: Vec2) -> Vec2 {
-        Vec2::new(self.x - other.x, self.y - other.y)
-    }
-
-    fn _mul(&self, scalar: f64) -> Vec2 {
-        Vec2::new(self.x * scalar, self.y * scalar)
-    }
-
-    fn normalize(&mut self) {
-        let len = self.length();
-        // len >= epsilon
-        if len != 0.0 {
-            self.x /= len;
-            self.y /= len;
-        }
-    }
-
-    fn set_zero(&mut self) {
-        self.x = 0.0;
-        self.y = 0.0;
     }
 }

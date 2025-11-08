@@ -1,4 +1,5 @@
 mod mass;
+mod vecx;
 
 // macroquad.rs
 use macroquad::prelude::*;
