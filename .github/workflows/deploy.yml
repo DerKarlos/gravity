@@ -29,10 +29,7 @@ jobs:
         run: |
           mkdir -p ./deploy
           cp index.html ./deploy/
-          cp ./target/wasm32-unknown-unknown/release/gravity.wasm ./
-          dir ./
           cp ./target/wasm32-unknown-unknown/release/gravity.wasm ./deploy/
-          dir ./deploy/
 
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
