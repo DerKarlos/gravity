@@ -30,8 +30,10 @@ jobs:
           echo ---------------
           mkdir -p ./deploy
           cp ./target/wasm32-unknown-unknown/release/gravity.wasm ./deploy/
+          cp ./target/wasm32-unknown-unknown/release/gravity.wasm ./
           cp index.html ./deploy/
           dir ./deploy/
+          dir ./
 
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
