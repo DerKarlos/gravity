@@ -30,9 +30,9 @@ jobs:
           mkdir -p ./deploy
           cp index.html ./deploy/
           ls
-          cp ./target/wasm32-unknown-unknown/release/gravity.wasm ./
+          cp ./target/wasm32-unknown-unknown/release/gravity.wasm .
           ls
-          cp ./ ./deploy/
+          cp . ./deploy/
           ls
 
       - name: Deploy
