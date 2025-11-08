@@ -87,7 +87,7 @@ async fn main() {
             let earth = masses.add_in_orbit(&earth_data, sun);
             masses.add_in_orbit(&luna_data, earth);
             masses.add_in_orbit(&comet_data, sun);
-            "Sun & Earth"
+            "Sun, Earth & Moon"
         }
     };
 
