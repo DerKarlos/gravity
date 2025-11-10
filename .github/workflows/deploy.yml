@@ -28,9 +28,7 @@ jobs:
       - name: Prepare Deployment Directory
         run: |
           mkdir -p ./deploy
-          ls ./deploy/
           cp index.html ./deploy/
-          ls ./deploy/
           cp ./target/wasm32-unknown-unknown/release/gravity.wasm ./deploy/
           ls ./deploy/
 

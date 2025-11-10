@@ -75,8 +75,14 @@ async fn main() {
 
     let mut masses = Masses::new();
 
-    let text = match 1 {
-        0 => {
+    let text = match 0 {
+        1 => {
+            let sun = masses.add_at_place(&sun_data);
+            masses.add_in_orbit(&earth_data, sun);
+            "Sun, Earth"
+        }
+
+        2 => {
             let sun = masses.add_at_place(&sun_data);
             masses.add_in_orbit(&sun2_data, sun);
             "double star"
@@ -108,6 +114,7 @@ async fn main() {
 
         // simulation logic and drawing
         masses.frame(seconds_per_frame);
+        masses.predict(seconds_per_frame);
         masses.draw();
 
         next_frame().await

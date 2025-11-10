@@ -35,11 +35,14 @@ pub struct MassData<'a> {
 pub struct Mass {
     position: VecX,
     velocity: VecX,
+    saved_position: VecX,
+    saved_velocity: VecX,
     acceleration: VecX,
     color: Color,
     name: String,
     mass: f64,
     diameter: f64,
+    pub prediction: Vec<VecX>,
 }
 
 impl Mass {
@@ -55,9 +58,12 @@ impl Mass {
             color: data.color,
             diameter: data.diameter,
             mass: data.mass,
+            saved_position: VecX::ZERO,
+            saved_velocity: VecX::ZERO,
             position,
             velocity,
             acceleration,
+            prediction: Vec::new(),
         };
 
         if orbits.is_some() {
@@ -85,6 +91,16 @@ impl Mass {
 
     fn _v_orbit(central_mass: f64, radius: f64) -> f64 {
         (GRAVITY_CONSTANT_OF_EARTH * central_mass / radius).sqrt()
+    }
+
+    pub fn save(&mut self) {
+        self.saved_position = self.position;
+        self.saved_velocity = self.velocity;
+    }
+
+    pub fn restore(&mut self) {
+        self.position = self.saved_position;
+        self.velocity = self.saved_velocity;
     }
 
     pub fn dragged_by(&mut self, other: &Mass) {
@@ -123,6 +139,26 @@ impl Mass {
             size as f32,
             self.color,
         );
+
+        let mut last = scale(self.position);
+        for position in &self.prediction {
+            let this = scale(position.clone());
+
+            if false {
+                draw_line(
+                    last.x as f32,
+                    last.y as f32,
+                    this.x as f32,
+                    this.y as f32,
+                    0.1,
+                    WHITE,
+                );
+            } else {
+                draw_rectangle(this.x as f32, this.y as f32, 1., 1., WHITE);
+            }
+
+            last = this;
+        }
     }
 }
 
@@ -154,6 +190,29 @@ impl Masses {
         self.masses.len() - 1
     }
 
+    pub fn predict(&mut self, dt: f64) {
+        for mass in &mut self.masses {
+            mass.save();
+        }
+
+        let count = 44;
+        for _ in 0..count {
+            for _ in 0..5 {
+                self.frame(dt);
+            }
+
+            for mass in &mut self.masses {
+                mass.prediction.push(mass.position);
+                if mass.prediction.len() > count {
+                    mass.prediction.remove(0);
+                }
+            }
+        }
+        for mass in &mut self.masses {
+            mass.restore();
+        }
+    }
+
     pub fn frame(&mut self, seconds_per_frame: f64) {
         // each mass drags each other mass, except itselfes
         for mass_index in 0..self.masses.len() {
@@ -173,6 +232,8 @@ impl Masses {
     }
 
     pub fn draw(&mut self) {
+        //??? _ = self.masses.iter().map(|m| m.draw());
+
         for mass in &mut self.masses {
             mass.draw();
         }
