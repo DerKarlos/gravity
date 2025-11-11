@@ -1,12 +1,8 @@
-use crate::vecx::*;
+use crate::vec_space::*;
 use macroquad::prelude::*;
 
 const WINDOW_WIDTH: i32 = 1000;
 const WINDOW_HEIGHT: i32 = 680; // ??? calculate frame
-const WINDOW_CENTER: VecX = VecX {
-    x: (WINDOW_WIDTH / 2) as f64,
-    y: (WINDOW_HEIGHT / 2) as f64,
-};
 
 pub const GRAVITY_CONSTANT_OF_EARTH: f64 = 6.67384e-11; // m^3/(kg*s^2)
 pub const M_AE: f64 = 149_597_870_700.0; // m per Astronomic Unit
@@ -23,43 +19,73 @@ const PIXEL: i32 = WINDOW_HEIGHT / 2; // todo: do it dynamic!
 
 #[derive(Debug, Default)]
 pub struct MassData<'a> {
-    pub name: &'a str,
-    pub color: Color,
-    pub diameter: f64,
-    pub mass: f64,
-    pub radius: f64,
-    pub excentricity: f64,
+    name: &'a str,
+    color: Color,
+    diameter: f64,
+    mass: f64,
+    radius: f64,
+    excentricity: f64,
+}
+
+impl<'a> MassData<'a> {
+    // "Static" constants
+
+    pub fn ellipse(
+        name: &str,
+        color: Color,
+        diameter: f64,
+        mass: f64,
+        radius: f64,
+        excentricity: f64,
+    ) -> MassData {
+        MassData {
+            name,
+            color,
+            diameter,
+            mass,
+            radius,
+            excentricity,
+        }
+    }
+
+    pub fn orbiter(name: &str, color: Color, diameter: f64, mass: f64, radius: f64) -> MassData {
+        MassData::ellipse(name, color, diameter, mass, radius, 0.0)
+    }
+
+    pub fn fixstar(name: &str, color: Color, diameter: f64, mass: f64) -> MassData {
+        MassData::ellipse(name, color, diameter, mass, 0.0, 0.0)
+    }
 }
 
 #[derive(Debug, Clone)]
 pub struct Mass {
-    position: VecX,
-    velocity: VecX,
-    saved_position: VecX,
-    saved_velocity: VecX,
-    acceleration: VecX,
+    position: VecSpace,
+    velocity: VecSpace,
+    saved_position: VecSpace,
+    saved_velocity: VecSpace,
+    acceleration: VecSpace,
     color: Color,
     name: String,
     mass: f64,
     diameter: f64,
-    pub prediction: Vec<VecX>,
+    prediction: Vec<VecSpace>,
 }
 
 impl Mass {
     // "Static" constants
 
     pub fn new(data: &MassData, orbits: Option<&mut Mass>) -> Mass {
-        let position = VecX::new(0.0, data.radius);
-        let velocity = VecX::ZERO;
-        let acceleration = VecX::ZERO;
+        let position = VecSpace::new(0.0, data.radius);
+        let velocity = VecSpace::ZERO;
+        let acceleration = VecSpace::ZERO;
 
         let mut mass = Mass {
             name: data.name.to_string(),
             color: data.color,
             diameter: data.diameter,
             mass: data.mass,
-            saved_position: VecX::ZERO,
-            saved_velocity: VecX::ZERO,
+            saved_position: VecSpace::ZERO,
+            saved_velocity: VecSpace::ZERO,
             position,
             velocity,
             acceleration,
@@ -77,7 +103,7 @@ impl Mass {
     /// around a body with `central_mass` at distance `radius` (in meters)
 
     fn mass_v_orbit(mass: &mut Mass, other: &mut Mass, excentriticy: f64) {
-        let signum = if mass.position.y > 0.0 { 1.0 } else { -1.0 };
+        let signum = if mass.position.y() > 0.0 { 1.0 } else { -1.0 };
         mass.position += other.position;
         mass.velocity += other.velocity;
         let radius = (other.position - mass.position).length();
@@ -85,8 +111,8 @@ impl Mass {
         let both_masses = mass.mass + other.mass;
         let velocity =
             (GRAVITY_CONSTANT_OF_EARTH * both_masses / radius).sqrt() * (1. - excentriticy);
-        mass.velocity.x += velocity / both_masses * other.mass * signum;
-        other.velocity.x += -velocity / both_masses * mass.mass * signum;
+        mass.velocity += VecSpace::new(velocity / both_masses * other.mass * signum, 0.);
+        other.velocity += VecSpace::new(-velocity / both_masses * mass.mass * signum, 0.);
     }
 
     fn _v_orbit(central_mass: f64, radius: f64) -> f64 {
@@ -134,8 +160,8 @@ impl Mass {
 
         let screen_pos = scale(self.position);
         draw_circle(
-            screen_pos.x as f32,
-            screen_pos.y as f32,
+            screen_pos.x() as f32,
+            screen_pos.y() as f32,
             size as f32,
             self.color,
         );
@@ -146,15 +172,15 @@ impl Mass {
 
             if false {
                 draw_line(
-                    last.x as f32,
-                    last.y as f32,
-                    this.x as f32,
-                    this.y as f32,
+                    last.x() as f32,
+                    last.y() as f32,
+                    this.x() as f32,
+                    this.y() as f32,
                     0.1,
                     WHITE,
                 );
             } else {
-                draw_rectangle(this.x as f32, this.y as f32, 1., 1., WHITE);
+                draw_rectangle(this.x() as f32, this.y() as f32, 1., 1., WHITE);
             }
 
             last = this;
@@ -162,9 +188,11 @@ impl Mass {
     }
 }
 
-fn scale(position: VecX) -> VecX {
+fn scale(position: VecSpace) -> VecSpace {
+    let window_center: VecSpace =
+        VecSpace::new((WINDOW_WIDTH / 2) as f64, (WINDOW_HEIGHT / 2) as f64);
     let z_view = 1.2;
-    position * (PIXEL as f64 / z_view / M_AE) + WINDOW_CENTER
+    position * (PIXEL as f64 / z_view / M_AE) + window_center
 }
 
 // ------------------- MASSES STRUCT/CLASS -------------------
