@@ -18,13 +18,12 @@ fn conf() -> Conf {
 #[macroquad::main(conf)]
 async fn main() {
     // some masses
-    let sun_data = MassData::fixstar("sun", YELLOW, 1.3914e6 * 1000., 1.989e30);
-    let sun2_data = MassData::orbiter("sun2", GOLD, 1.3914e6 * 1000., 1.989e30, 0.5 * M_AE);
-    let earth_data = MassData::orbiter("earth", BLUE, 12756.32 * 1000., 5.974e24, 1.0 * M_AE);
-    let luna_data = MassData::orbiter("luna", RED, 3476. * 1000., 7.349e22, 370171. * 1000.); // more but 0.005 AE radius makes the orbit insable.
-    let _jupiter_data =
-        MassData::orbiter("jupiter", GREEN, 142984.0 * 1000., 1.899e27, 25e3 * M_AE);
-    let comet_data = MassData::ellipse("comet", WHITE, 500.0 * 1000., 1e6, 1.3 * M_AE, 0.4);
+    let sun_data = MassData::fixstar("sun", YELLOW, Si::Km(1.3914e6), 1.989e30);
+    let sun2_data = MassData::orbiter("sun2", GOLD, Si::Km(1.3914e6), 1.989e30, Si::Au(0.5));
+    let earth_data = MassData::orbiter("earth", BLUE, Si::Km(12756.32), 5.974e24, Si::Au(1.));
+    let luna_data = MassData::orbiter("luna", RED, Si::Km(3476.), 7.349e22, Si::Km(370171.)); // more but 0.005 AE radius makes the orbit insable.
+    let _jupiter_d = MassData::orbiter("jupiter", GREEN, Si::Km(142984.0), 1.899e27, Si::Au(25e3));
+    let comet_data = MassData::ellipse("comet", WHITE, Si::Km(500.0), 1e6, Si::Au(1.3), 0.4);
 
     let mut masses = Masses::new();
 

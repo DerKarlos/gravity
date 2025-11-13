@@ -5,15 +5,46 @@ const WINDOW_WIDTH: i32 = 1000;
 const WINDOW_HEIGHT: i32 = 680; // ??? calculate frame
 
 pub const GRAVITY_CONSTANT_OF_EARTH: f64 = 6.67384e-11; // m^3/(kg*s^2)
-pub const M_AE: f64 = 149_597_870_700.0; // m per Astronomic Unit
+pub const M_AU: f64 = 149_597_870_700.0; // m per Astronomic Unit
 pub const MAX_GRAVITY_DISTANCE: f64 = 1e38; // [AE]
 pub const DRAW_FACT: f64 = 200.0;
 pub const DRAW_MIN: i32 = 3;
 pub const DRAW_MAX: i32 = 200;
+const SECONDS_PER_YEAR: f64 = 60. * 60. * 24. * 365.;
 
 // Die kleinere Ausdehnung zählt als normaler darstellbar Bildpunktebereich
 // The smallest extend of the window counts as visible screen range
 const PIXEL: i32 = WINDOW_HEIGHT / 2; // todo: do it dynamic!
+
+// ------------------- SI UNIT VALUE KONVERT OPTIONS  -------------------
+
+#[derive(Debug, Default)]
+pub enum Si {
+    // Distance
+    #[default]
+    Null,
+    _M(f64),
+    Km(f64),
+    Au(f64),
+    _LightYear(f64),
+    // Time
+    _MilliSecound(f64),
+    _Secound(f64),
+    _Year(f64),
+}
+
+pub fn si_into(value: &Si) -> f64 {
+    match value {
+        Si::Null => 0.0,
+        Si::_M(m) => *m,
+        Si::Km(m) => m * 1000.,
+        Si::Au(ae) => ae * M_AU,
+        Si::_LightYear(ly) => ly * 0.0,
+        Si::_MilliSecound(ms) => ms / 1000.0,
+        Si::_Secound(s) => *s,
+        Si::_Year(y) => y * SECONDS_PER_YEAR,
+    }
+}
 
 // ------------------- MASS STRUCT/CLASS -------------------
 
@@ -21,9 +52,9 @@ const PIXEL: i32 = WINDOW_HEIGHT / 2; // todo: do it dynamic!
 pub struct MassData<'a> {
     name: &'a str,
     color: Color,
-    diameter: f64,
+    diameter: Si,
     mass: f64,
-    radius: f64,
+    radius: Si,
     excentricity: f64,
 }
 
@@ -33,9 +64,9 @@ impl<'a> MassData<'a> {
     pub fn ellipse(
         name: &str,
         color: Color,
-        diameter: f64,
+        diameter: Si,
         mass: f64,
-        radius: f64,
+        radius: Si,
         excentricity: f64,
     ) -> MassData {
         MassData {
@@ -48,12 +79,12 @@ impl<'a> MassData<'a> {
         }
     }
 
-    pub fn orbiter(name: &str, color: Color, diameter: f64, mass: f64, radius: f64) -> MassData {
+    pub fn orbiter(name: &str, color: Color, diameter: Si, mass: f64, radius: Si) -> MassData {
         MassData::ellipse(name, color, diameter, mass, radius, 0.0)
     }
 
-    pub fn fixstar(name: &str, color: Color, diameter: f64, mass: f64) -> MassData {
-        MassData::ellipse(name, color, diameter, mass, 0.0, 0.0)
+    pub fn fixstar(name: &str, color: Color, diameter: Si, mass: f64) -> MassData {
+        MassData::ellipse(name, color, diameter, mass, Si::Au(0.0), 0.0)
     }
 }
 
@@ -75,14 +106,14 @@ impl Mass {
     // "Static" constants
 
     pub fn new(data: &MassData, orbits: Option<&mut Mass>) -> Mass {
-        let position = VecSpace::new(0.0, data.radius);
+        let position = VecSpace::new(0.0, si_into(&data.radius));
         let velocity = VecSpace::ZERO;
         let acceleration = VecSpace::ZERO;
 
         let mut mass = Mass {
             name: data.name.to_string(),
             color: data.color,
-            diameter: data.diameter,
+            diameter: si_into(&data.diameter),
             mass: data.mass,
             saved_position: VecSpace::ZERO,
             saved_velocity: VecSpace::ZERO,
@@ -137,7 +168,7 @@ impl Mass {
         let mut distance_vector = other.position - self.position;
         let distance = distance_vector.length();
 
-        if distance < MAX_GRAVITY_DISTANCE * M_AE {
+        if distance < MAX_GRAVITY_DISTANCE * M_AU {
             distance_vector.normalize();
 
             let acceleration = other.mass / (distance * distance) * GRAVITY_CONSTANT_OF_EARTH;
@@ -155,7 +186,7 @@ impl Mass {
 
     pub fn draw(&self) {
         // sqrt(sqrt()) scaling like Kotlin code
-        let mut size = ((self.diameter / M_AE).sqrt().sqrt() / 2.0 * DRAW_FACT) as i32;
+        let mut size = ((self.diameter / M_AU).sqrt().sqrt() / 2.0 * DRAW_FACT) as i32;
         size = size.clamp(DRAW_MIN, DRAW_MAX);
 
         let screen_pos = scale(self.position);
@@ -192,7 +223,7 @@ fn scale(position: VecSpace) -> VecSpace {
     let window_center: VecSpace =
         VecSpace::new((WINDOW_WIDTH / 2) as f64, (WINDOW_HEIGHT / 2) as f64);
     let z_view = 1.2;
-    position * (PIXEL as f64 / z_view / M_AE) + window_center
+    position * (PIXEL as f64 / z_view / M_AU) + window_center
 }
 
 // ------------------- MASSES STRUCT/CLASS -------------------
