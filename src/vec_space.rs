@@ -85,6 +85,19 @@ impl VecSpace {
         }
     }
 
+    pub fn normalized(&mut self) -> Self {
+        let len = self.length();
+        // len >= epsilon
+        if len == 0.0 {
+            return VecSpace::ZERO;
+        }
+
+        VecSpace {
+            x: self.x / len,
+            y: self.y / len,
+        }
+    }
+
     pub fn set_zero(&mut self) {
         self.x = 0.0;
         self.y = 0.0;
