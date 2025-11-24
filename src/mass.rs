@@ -16,6 +16,9 @@ pub const SECONDS_PER_YEAR: f64 = SECONDS_PER_DAY * 365.25;
 // Die kleinere Ausdehnung zählt als normaler darstellbar Bildpunktebereich
 // The smallest extend of the window counts as visible screen range
 const PIXEL: i32 = WINDOW_HEIGHT / 2; // todo: do it dynamic!
+const PREDICT_COUNT: usize = 500;
+const SECODS_PER_ORBIT: f64 = 10.;
+pub const MYSTIC_G_FACT: f64 = 2.; // 1 or as in the old code 2 ??? And why?
 
 // ------------------- SI UNIT VALUE KONVERT OPTIONS  -------------------
 
@@ -24,7 +27,7 @@ pub enum Si {
     // Distance
     #[default]
     Null,
-    _M(f64),
+    M(f64),
     Km(f64),
     Au(f64),
     _LightYear(f64),
@@ -38,10 +41,17 @@ pub enum Si {
     _Year(f64),
 }
 
+impl Si {
+    // todo: use trait
+    pub fn _into(&self) -> f64 {
+        si_into(self)
+    }
+}
+
 pub fn si_into(value: &Si) -> f64 {
     match value {
         Si::Null => 0.0,
-        Si::_M(m) => *m,
+        Si::M(m) => *m,
         Si::Km(m) => m * 1000.,
         Si::Au(ae) => ae * M_AU,
         Si::_LightYear(ly) => ly * 0.0,
@@ -64,7 +74,7 @@ pub struct MassData<'a> {
     color: Color,
     diameter: Si,
     mass: Si,
-    radius: Si,
+    orbit_radius: Si,
     excentricity: f64,
 }
 
@@ -76,7 +86,7 @@ impl<'a> MassData<'a> {
         color: Color,
         diameter: Si,
         mass: Si,
-        radius: Si,
+        orbit_radius: Si,
         excentricity: f64,
     ) -> MassData {
         MassData {
@@ -84,17 +94,20 @@ impl<'a> MassData<'a> {
             color,
             diameter,
             mass,
-            radius,
+            orbit_radius,
             excentricity,
         }
     }
 
-    pub fn orbiter(name: &str, color: Color, diameter: Si, mass: Si, radius: Si) -> MassData {
-        MassData::ellipse(name, color, diameter, mass, radius, 0.0)
+    pub fn orbiter(name: &str, color: Color, diameter: Si, mass: Si, orbit_radius: Si) -> MassData {
+        MassData::ellipse(name, color, diameter, mass, orbit_radius, 0.0)
     }
 
     pub fn fixstar(name: &str, color: Color, diameter: Si, mass: Si) -> MassData {
         MassData::ellipse(name, color, diameter, mass, Si::Au(0.0), 0.0)
+    }
+    pub fn mul_orbit_radius(&mut self, fakt: f64) {
+        self.orbit_radius = Si::M(si_into(&self.orbit_radius) * fakt);
     }
 }
 
@@ -110,13 +123,14 @@ pub struct Mass {
     mass: f64,
     diameter: f64,
     prediction: Vec<VecSpace>,
+    predict_index: usize,
 }
 
 impl Mass {
     // "Static" constants
 
     pub fn new(data: &MassData, orbits: Option<&mut Mass>) -> Mass {
-        let position = VecSpace::new(0.0, si_into(&data.radius));
+        let position = VecSpace::new(0.0, si_into(&data.orbit_radius));
         let velocity = VecSpace::ZERO;
         let acceleration = VecSpace::ZERO;
 
@@ -135,10 +149,15 @@ impl Mass {
             velocity,
             acceleration,
             prediction: Vec::new(),
+            predict_index: 0,
         };
 
         if orbits.is_some() {
             Self::mass_v_orbit(&mut mass, &mut orbits.unwrap(), data.excentricity);
+        }
+
+        for _ in 0..PREDICT_COUNT {
+            mass.prediction.push(position);
         }
 
         return mass;
@@ -154,14 +173,14 @@ impl Mass {
         let radius = (other.position - mass.position).length();
 
         let both_masses = mass.mass + other.mass;
-        let velocity =
-            (GRAVITY_CONSTANT_OF_EARTH * both_masses / radius).sqrt() * (1. - excentriticy);
+        let velocity = (MYSTIC_G_FACT * GRAVITY_CONSTANT_OF_EARTH * both_masses / radius).sqrt()
+            * (1. - excentriticy);
         mass.velocity += VecSpace::new(velocity / both_masses * other.mass * signum, 0.);
         other.velocity += VecSpace::new(-velocity / both_masses * mass.mass * signum, 0.);
     }
 
     fn _v_orbit(central_mass: f64, radius: f64) -> f64 {
-        (GRAVITY_CONSTANT_OF_EARTH * central_mass / radius).sqrt()
+        (MYSTIC_G_FACT * GRAVITY_CONSTANT_OF_EARTH * central_mass / radius).sqrt()
     }
 
     pub fn get_drag_values(&mut self) -> (f64, VecSpace) {
@@ -194,16 +213,17 @@ impl Mass {
         if distance < MAX_GRAVITY_DISTANCE * M_AU {
             distance_vector.normalize();
 
-            let acceleration = other_mass / (distance * distance) * GRAVITY_CONSTANT_OF_EARTH;
+            let acceleration =
+                other_mass / (distance * distance) * GRAVITY_CONSTANT_OF_EARTH * MYSTIC_G_FACT;
             let acceleration_vector = distance_vector * acceleration;
 
             self.acceleration += acceleration_vector;
         }
     }
 
-    pub fn frame_move(&mut self, dt: f64) {
-        self.velocity += self.acceleration * dt;
-        self.position += self.velocity * dt;
+    pub fn frame_move(&mut self, seconds_per_frame: f64) {
+        self.velocity += self.acceleration * seconds_per_frame;
+        self.position += self.velocity * seconds_per_frame;
         self.acceleration.set_zero();
     }
 
@@ -212,7 +232,7 @@ impl Mass {
         let mut size = ((self.diameter / M_AU).sqrt().sqrt() / 2.0 * DRAW_FACT) as i32;
         size = size.clamp(DRAW_MIN, DRAW_MAX);
 
-        let screen_pos = scale(&self.position, masses.z_view);
+        let screen_pos = masses.scale(&self.position);
         draw_circle(
             screen_pos.x() as f32,
             screen_pos.y() as f32,
@@ -220,48 +240,57 @@ impl Mass {
             self.color,
         );
 
-        let mut last = screen_pos;
+        let mut last_pos = screen_pos;
         for position in &self.prediction {
-            let this = scale(position, masses.z_view);
+            let this_pos = masses.scale(position);
 
             if false {
                 draw_line(
-                    last.x() as f32,
-                    last.y() as f32,
-                    this.x() as f32,
-                    this.y() as f32,
+                    last_pos.x() as f32,
+                    last_pos.y() as f32,
+                    this_pos.x() as f32,
+                    this_pos.y() as f32,
                     0.1,
                     WHITE,
                 );
             } else {
-                draw_rectangle(this.x() as f32, this.y() as f32, 1., 1., WHITE);
+                draw_rectangle(this_pos.x() as f32, this_pos.y() as f32, 1., 1., WHITE);
             }
 
-            last = this;
+            last_pos = this_pos;
         }
     }
 }
 
-fn scale(position: &VecSpace, z_view: f64) -> VecSpace {
-    let window_center: VecSpace =
-        VecSpace::new((WINDOW_WIDTH / 2) as f64, (WINDOW_HEIGHT / 2) as f64);
-    *position * (PIXEL as f64 / z_view / M_AU) + window_center
-}
-
 // ------------------- MASSES STRUCT/CLASS -------------------
+
 pub struct Masses {
+    text: String,
     masses: Vec<Mass>,
     z_view: f64,
     pub maximal_orbit: f64,
+    pub seconds_per_orbit: f64,
+    pub planing_mode: bool,
+    start_time: f64,
+    burn_time: f64,
 }
 
 impl Masses {
     pub fn new() -> Masses {
         Masses {
+            text: String::new(),
             masses: Vec::new(),
             z_view: 1.2,
             maximal_orbit: 0.0,
+            seconds_per_orbit: SECODS_PER_ORBIT,
+            planing_mode: false,
+            start_time: 0.0,
+            burn_time: 0.0,
         }
+    }
+
+    pub fn set_text(&mut self, text: &str) {
+        self.text = text.to_string();
     }
 
     pub fn add_at_place(&mut self, data: &MassData) -> usize {
@@ -272,9 +301,9 @@ impl Masses {
 
     pub fn add_in_orbit(&mut self, data: &MassData, orbits: usize) -> usize {
         let orbits = &mut self.masses[orbits];
-        self.maximal_orbit = si_into(&data.radius).max(self.maximal_orbit);
+        self.maximal_orbit = si_into(&data.orbit_radius).max(self.maximal_orbit);
         self.z_view = 1.1 * self.maximal_orbit / M_AU;
-        println!("{}", self.maximal_orbit);
+        //println!("max orbit: {}", self.maximal_orbit);
         let mass = Mass::new(data, Some(orbits));
         self.masses.push(mass);
         self.masses.len() - 1
@@ -286,21 +315,40 @@ impl Masses {
         ship.accelerate(acceleration);
     }
 
+    pub fn toggle_planing_mode(&mut self, simulated_seconds: f64) {
+        self.planing_mode = !self.planing_mode;
+        if self.planing_mode {
+            //let x = 1e4;
+            let y = 1e3;
+            self.start_time = simulated_seconds + y * 2.;
+            self.burn_time = y;
+        }
+    }
+
+    pub fn planing_start_time(&mut self, set: f64) {
+        self.start_time += set * 0.5;
+    }
+
+    pub fn planing_burn_time(&mut self, set: f64) {
+        self.burn_time *= 1. + set * 0.0002;
+    }
+
     pub fn predict(&mut self, simulated_seconds_per_frame: f64, mut simulated_seconds: f64) {
         for mass in &mut self.masses {
             mass.save();
         }
 
-        let count = 1000;
-        for _ in 0..count {
+        for _ in 0..PREDICT_COUNT {
             self.simulate(simulated_seconds_per_frame, simulated_seconds);
             simulated_seconds += simulated_seconds_per_frame;
 
             for mass in &mut self.masses {
-                mass.prediction.push(mass.position);
-                if mass.prediction.len() > count {
-                    mass.prediction.remove(0);
-                }
+                mass.prediction[mass.predict_index] = mass.position;
+                mass.predict_index = (mass.predict_index + 1) % PREDICT_COUNT;
+                //mass.prediction.push(mass.position);
+                //if mass.prediction.len() > count {
+                //    mass.prediction.remove(0);
+                //}
             }
         }
 
@@ -325,24 +373,10 @@ impl Masses {
 
         let ship_index = self.masses.len() - 1;
         let ship = &mut self.masses[ship_index];
-        let x = 1e4;
-        let y = x + 1e3;
-        draw_text(
-            (x / SECONDS_PER_DAY).to_string().as_str(),
-            20.0,
-            60.0,
-            30.0,
-            DARKGRAY,
-        );
-        draw_text(
-            (simulated_seconds / SECONDS_PER_DAY).to_string().as_str(),
-            20.0,
-            80.0,
-            30.0,
-            DARKGRAY,
-        );
-        if simulated_seconds > x && simulated_seconds < y {
-            ship.accelerate(-1.);
+        let start = self.start_time;
+        let end = self.start_time + self.burn_time;
+        if simulated_seconds > start && simulated_seconds < end {
+            ship.accelerate(1.);
         }
 
         for mass in &mut self.masses {
@@ -350,8 +384,15 @@ impl Masses {
         }
     }
 
+    pub fn scale(&self, position: &VecSpace) -> VecSpace {
+        let window_center: VecSpace =
+            VecSpace::new((WINDOW_WIDTH / 2) as f64, (WINDOW_HEIGHT / 2) as f64);
+        *position * (PIXEL as f64 / self.z_view / M_AU) + window_center
+    }
+
     pub fn draw(&mut self) {
         //??? _ = self.masses.iter().map(|m| m.draw());
+        draw_text(self.text.as_str(), 20.0, 20.0, 30.0, DARKGRAY);
 
         for mass in &self.masses {
             mass.draw(&self);

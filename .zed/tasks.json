@@ -3,6 +3,13 @@
 // Example:
 [
   {
+    "label": "Release",
+    "use_new_terminal": false,
+    "command": "cargo run --release",
+    "tags": ["Rust"]
+  },
+
+  {
     "label": "Run",
     "use_new_terminal": false,
     "command": "cargo run",

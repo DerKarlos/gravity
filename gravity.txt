@@ -127,3 +127,8 @@ cargo install basic-http-server
 basic-http-server
 http://127.0.0.1:4000
 http://127.0.0.1:4000/index.html
+
+
+find . -name .DS_Store -print0 | xargs -0 git rm -f --ignore-unmatch
+git commit -m '.DS_Store banished!'
+https://stackoverflow.com/questions/107701/how-can-i-remove-ds-store-files-from-a-git-repository
