@@ -17,37 +17,17 @@ fn conf() -> Conf {
 
 fn set_masses(case: i16) -> Masses {
     // some masses
-    let sun_data = MassData::fixstar("sun", YELLOW, Si::Km(1.3914e6), Si::Sol(1.));
-    let sun2_data = MassData::orbiter("sun2", GOLD, Si::Km(1.3914e6), Si::Sol(1.), Si::Au(0.5));
-    let earth_data = MassData::orbiter("earth", BLUE, Si::Km(12756.32), Si::Earth(1.), Si::Au(1.));
+    let sun_data = MassData::fixstar("sun", YELLOW, km(1.3914e6), mass_sol(1.));
+    let sun2_data = MassData::orbiter("sun2", GOLD, km(1.3914e6), mass_sol(1.), au(0.5));
+    let earth_data = MassData::orbiter("earth", BLUE, km(12756.32), mass_earth(1.), au(1.));
 
     // more but 0.005 AE radius makes the orbit insable.
-    let luna_data = MassData::orbiter(
-        "luna",
-        RED,
-        Si::Km(3476.),
-        Si::Kg(7.349e22),
-        Si::Km(370171.),
-    );
-    let near_moon_data = MassData::orbiter(
-        "near_moon",
-        RED,
-        Si::Km(3476.),
-        Si::Kg(7.349e22),
-        Si::Km(370171. / 10.),
-    );
-    let _jupiter_d = MassData::orbiter(
-        "jupiter",
-        GREEN,
-        Si::Km(142984.0),
-        Si::Kg(1.899e27),
-        Si::Au(25e3),
-    );
-    let comet_data =
-        MassData::ellipse("comet", WHITE, Si::Km(500.0), Si::Kg(1e6), Si::Au(1.3), 0.4);
-    let ship_data = MassData::orbiter("ship", MAGENTA, Si::Km(10.0), Si::Kg(2e3), Si::Km(5000.));
+    let luna_data = MassData::orbiter("luna", RED, km(3476.), kg(7.349e22), km(370171.));
+    let _jupiter_d = MassData::orbiter("jupiter", GREEN, km(142984.0), kg(1.899e27), au(25e3));
+    let comet_data = MassData::ellipse("comet", WHITE, km(500.0), kg(1e6), au(1.3), 0.4);
+    let ship_data = MassData::orbiter("ship", MAGENTA, km(10.0), kg(2e3), km(5000.));
 
-    let mut masses = Masses::new();
+    let mut masses = Masses::new(case);
 
     match case {
         1 => {
@@ -82,12 +62,14 @@ fn set_masses(case: i16) -> Masses {
             masses.set_text("Test");
             masses.seconds_per_orbit = 50000.;
             let earth = masses.add_at_place(&earth_data);
-            let mut moon_data = luna_data;
-            moon_data.mul_orbit_radius(0.1);
-            masses.add_in_orbit(&near_moon_data, earth);
+            masses.add_in_orbit(&luna_data.multiplied_orbit_radius(0.1), earth);
             masses.add_in_orbit(&ship_data, earth);
         }
     };
+
+    masses.simulated_seconds_per_secound = SECONDS_PER_YEAR / masses.seconds_per_orbit;
+    masses.simulated_seconds_per_frame =
+        FRAME_TIME * masses.simulated_seconds_per_secound / MYSTIC_G_FACT;
 
     masses
 
@@ -98,41 +80,32 @@ fn set_masses(case: i16) -> Masses {
 
 #[macroquad::main(conf)]
 async fn main() {
-    let case = 4;
-    let mut masses = set_masses(case);
+    let mut masses = set_masses(0);
 
-    const FRAME_TIME: f64 = 0.02; // 20ms = 50Hz
-    let simulated_seconds_per_secound: f64 = SECONDS_PER_YEAR / masses.seconds_per_orbit;
-    let simulated_seconds_per_frame = FRAME_TIME * simulated_seconds_per_secound / MYSTIC_G_FACT;
-
-    let mut simulated_seconds = 0.0;
     let mut frame_delta_sum = 0.0;
-    let mut fix_pressed = 0; // is_key_pressed needs about 4 loops to stop a true
-    // todo: is_key_pressed does not fire once
 
     loop {
-        if fix_pressed > 0 {
-            fix_pressed -= 1;
-        } else {
-            if is_key_pressed(KeyCode::Escape) {
-                break;
-            }
+        if let Some(char) = get_char_pressed() {
+            // println!("pressed char {:?}!", char);
+            match char {
+                '\u{1b}' => break, // KeyCode::Escape
+                '\r' => {
+                    // KeyCode::Enter
+                    masses.toggle_planing_mode();
+                    println!(
+                        "planing_mode: {} {}",
+                        masses.planing_mode, masses.simulated_seconds
+                    );
+                }
 
-            if is_key_pressed(KeyCode::R) {
-                fix_pressed = 50; // 5 is not enoung to avoid a hang up
-                simulated_seconds = 0.0;
-                frame_delta_sum = 0.0;
-                masses = set_masses(case);
-                println!("set_masses");
-            }
+                'r' => masses = set_masses(masses.case),
+                '0' => masses = set_masses(0),
+                '1' => masses = set_masses(1),
+                '2' => masses = set_masses(2),
+                '3' => masses = set_masses(3),
+                '4' => masses = set_masses(4),
 
-            if is_key_pressed(KeyCode::L) {
-                fix_pressed = 5;
-                masses.toggle_planing_mode(simulated_seconds);
-                println!(
-                    "planing_mode: {} {}",
-                    masses.planing_mode, simulated_seconds
-                );
+                _ => println!("Char not used: {:?}!", char),
             }
         }
 
@@ -167,10 +140,9 @@ async fn main() {
 
             // simulation logic and drawing
             if !masses.planing_mode {
-                masses.simulate(simulated_seconds_per_frame, simulated_seconds);
-                simulated_seconds += simulated_seconds_per_frame;
+                masses.simulate();
             }
-            masses.predict(simulated_seconds_per_frame, simulated_seconds);
+            masses.predict();
         }
 
         clear_background(GRAY);
