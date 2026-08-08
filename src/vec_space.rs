@@ -1,7 +1,8 @@
 use std::ops;
 
 // ------------------- VECX STRUCT/CLASS -------------------
-// use own file???
+// Where was this derived from?
+
 #[derive(Clone, Copy, Debug)]
 pub struct VecSpace {
     x: f64,

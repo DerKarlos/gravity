@@ -44,7 +44,7 @@ pub fn mass_sol(sol: f64) -> f64 {
     sol * 1.989e30
 }
 
-// ------------------- MASS STRUCT/CLASS -------------------
+// ------------------- MASS-DATA STRUCT/CLASS -------------------
 
 #[derive(Debug, Default, Clone, Copy)]
 pub struct MassData<'a> {
@@ -66,7 +66,7 @@ impl<'a> MassData<'a> {
         mass: f64,
         orbit_radius: f64,
         excentricity: f64,
-    ) -> MassData {
+    ) -> MassData<'_> {
         MassData {
             name,
             color,
@@ -83,11 +83,11 @@ impl<'a> MassData<'a> {
         diameter: f64,
         mass: f64,
         orbit_radius: f64,
-    ) -> MassData {
+    ) -> MassData<'_> {
         MassData::ellipse(name, color, diameter, mass, orbit_radius, 0.0)
     }
 
-    pub fn fixstar(name: &str, color: Color, diameter: f64, mass: f64) -> MassData {
+    pub fn fixstar(name: &str, color: Color, diameter: f64, mass: f64) -> MassData<'_> {
         MassData::ellipse(name, color, diameter, mass, 0.0, 0.0)
     }
     pub fn _mul_orbit_radius(&mut self, fakt: f64) {
@@ -99,6 +99,8 @@ impl<'a> MassData<'a> {
         ret
     }
 }
+
+// =================== MASS STRUCT/CLASS ===================
 
 #[derive(Debug, Clone)]
 pub struct Mass {
