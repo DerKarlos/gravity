@@ -68,8 +68,7 @@ fn set_masses(case: i16) -> Masses {
     };
 
     masses.simulated_seconds_per_secound = SECONDS_PER_YEAR / masses.seconds_per_orbit;
-    masses.simulated_seconds_per_frame =
-        FRAME_TIME * masses.simulated_seconds_per_secound / MYSTIC_G_FACT;
+    masses.simulated_seconds_per_frame = SIM_TIME * masses.simulated_seconds_per_secound;
 
     masses
 
@@ -80,7 +79,7 @@ fn set_masses(case: i16) -> Masses {
 
 #[macroquad::main(conf)]
 async fn main() {
-    let mut masses = set_masses(0);
+    let mut masses = set_masses(1);
 
     let mut frame_delta_sum = 0.0;
 
@@ -129,20 +128,18 @@ async fn main() {
             masses.planing_burn_time(-1.);
         }
 
+        let dt_sim = SECONDS_PER_YEAR / SECONDS_PER_ORBIT * SIM_TIME;
         let frame_delta_time: f64 = (get_frame_time() as f64).min(1.0);
         frame_delta_sum += frame_delta_time;
-        if frame_delta_sum < FRAME_TIME {
-            continue;
-        }
 
-        while frame_delta_sum > FRAME_TIME {
-            frame_delta_sum -= FRAME_TIME;
+        while frame_delta_sum > SIM_TIME {
+            frame_delta_sum -= SIM_TIME;
 
             // simulation logic and drawing
             if !masses.planing_mode {
-                masses.simulate();
+                masses.simulate(dt_sim);
             }
-            masses.predict();
+            // masses.predict();
         }
 
         clear_background(GRAY);

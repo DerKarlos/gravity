@@ -1,17 +1,19 @@
 use crate::vec_space::*;
 use macroquad::prelude::*;
 
-// Parameter
-pub const FRAME_TIME: f64 = 0.02; // 20ms = 50Hz
+///// Parameter /////
+
+//   Delta time per simulation step. May or may not identicall to the render frame
+pub const SIM_TIME: f64 = 0.02; // 20ms = 50Hz   16.666... = 60Hz
 const PREDICT_COUNT: usize = 500;
-const SECONDS_PER_ORBIT: f64 = 10.;
+pub const SECONDS_PER_ORBIT: f64 = 10.;
 
 const WINDOW_WIDTH: i32 = 1000;
 const WINDOW_HEIGHT: i32 = 680; // ??? calculate frame
 
 pub const GRAVITY_CONSTANT_OF_EARTH: f64 = 6.67384e-11; // m^3/(kg*s^2)
 pub const M_AU: f64 = 149_597_870_700.0; // m per Astronomic Unit
-pub const MAX_GRAVITY_DISTANCE: f64 = 1e38; // [AE]
+pub const _MAX_GRAVITY_DISTANCE: f64 = 1e38; // [AE]
 pub const DRAW_FACT: f64 = 200.0;
 pub const DRAW_MIN: i32 = 3;
 pub const DRAW_MAX: i32 = 200;
@@ -21,7 +23,6 @@ pub const SECONDS_PER_YEAR: f64 = SECONDS_PER_DAY * 365.25;
 // Die kleinere Ausdehnung zählt als normaler darstellbar Bildpunktebereich
 // The smallest extend of the window counts as visible screen range
 const PIXEL: i32 = WINDOW_HEIGHT / 2; // todo: do it dynamic!
-pub const MYSTIC_G_FACT: f64 = 2.; // 1 or as in the old code 2 ??? And why?
 
 // ------------------- SI UNIT VALUE KONVERT OPTIONS  -------------------
 
@@ -121,7 +122,7 @@ impl Mass {
     // "Static" constants
 
     pub fn new(data: &MassData, orbits: Option<&mut Mass>) -> Mass {
-        let position = VecSpace::new(0.0, data.orbit_radius);
+        let position = VecSpace::new(data.orbit_radius, 0.0);
         let velocity = VecSpace::ZERO;
         let acceleration = VecSpace::ZERO;
 
@@ -164,18 +165,14 @@ impl Mass {
         let radius = (other.position - mass.position).length();
 
         let both_masses = mass.mass + other.mass;
-        let velocity = (MYSTIC_G_FACT * GRAVITY_CONSTANT_OF_EARTH * both_masses / radius).sqrt()
-            * (1. - excentriticy);
-        mass.velocity += VecSpace::new(velocity / both_masses * other.mass * signum, 0.);
-        other.velocity += VecSpace::new(-velocity / both_masses * mass.mass * signum, 0.);
+        let velocity =
+            (GRAVITY_CONSTANT_OF_EARTH * both_masses / radius).sqrt() * (1. - excentriticy);
+        mass.velocity += VecSpace::new(0., -velocity / both_masses * other.mass * signum);
+        other.velocity += VecSpace::new(0., velocity / both_masses * mass.mass * signum);
     }
 
     fn _v_orbit(central_mass: f64, radius: f64) -> f64 {
-        (MYSTIC_G_FACT * GRAVITY_CONSTANT_OF_EARTH * central_mass / radius).sqrt()
-    }
-
-    pub fn get_drag_values(&mut self) -> (f64, VecSpace) {
-        (self.mass, self.position)
+        (GRAVITY_CONSTANT_OF_EARTH * central_mass / radius).sqrt()
     }
 
     pub fn save(&mut self) {
@@ -193,28 +190,21 @@ impl Mass {
         self.acceleration += direction * acceleration * 1.;
     }
 
-    pub fn dragged_by(&mut self, (other_mass, other_position): (f64, VecSpace)) {
-        if other_mass == 0.0 {
-            return; // don’t drag zero-mass objects
-        }
-
-        let mut distance_vector = other_position - self.position;
+    pub fn drag(&self, other: &mut Mass) {
+        let mut distance_vector = self.position - other.position;
         let distance = distance_vector.length();
+        distance_vector.normalize();
 
-        if distance < MAX_GRAVITY_DISTANCE * M_AU {
-            distance_vector.normalize();
+        // F = force (N) : m = mass (kg) / r² = distance² (m²) * G = 6.67430 × 10⁻¹¹ m³/(kg·s²)
+        let acceleration = self.mass / (distance * distance) * GRAVITY_CONSTANT_OF_EARTH; //??? * MYSTIC_G_FACT;
+        let acceleration_vector = distance_vector * acceleration;
 
-            let acceleration =
-                other_mass / (distance * distance) * GRAVITY_CONSTANT_OF_EARTH * MYSTIC_G_FACT;
-            let acceleration_vector = distance_vector * acceleration;
-
-            self.acceleration += acceleration_vector;
-        }
+        other.acceleration += acceleration_vector;
     }
 
-    pub fn frame_move(&mut self, simulated_seconds_per_frame: f64) {
-        self.velocity += self.acceleration * simulated_seconds_per_frame;
-        self.position += self.velocity * simulated_seconds_per_frame;
+    pub fn move_seconds(&mut self, dt_sim: f64) {
+        self.velocity += self.acceleration * dt_sim;
+        self.position += self.velocity * dt_sim;
         self.acceleration.set_zero();
     }
 
@@ -338,7 +328,7 @@ impl Masses {
         }
 
         for _ in 0..PREDICT_COUNT {
-            self.simulate();
+            self.simulate(0.0); //???
             self.simulated_seconds += self.simulated_seconds_per_frame;
 
             for mass in &mut self.masses {
@@ -356,18 +346,21 @@ impl Masses {
         }
     }
 
-    pub fn simulate(&mut self) {
+    pub fn simulate(&mut self, dt_sim: f64) {
         // each mass drags each other mass, except itselfes
-        for mass_index in 0..self.masses.len() {
-            let drag_values = self.masses[mass_index].get_drag_values();
+        for i in 0..self.masses.len() {
+            for j in (i + 1)..self.masses.len() {
+                let (left, right) = self.masses.split_at_mut(j);
 
-            for dragged_index in 0..self.masses.len() {
-                if mass_index == dragged_index {
-                    continue;
-                }
-                let dragged = &mut self.masses[dragged_index];
-                dragged.dragged_by(drag_values);
+                let a = &mut left[i];
+                let b = &mut right[0];
+                a.drag(b);
+                b.drag(a);
             }
+        }
+
+        for mass in &mut self.masses {
+            mass.move_seconds(dt_sim); // 2.0e4
         }
 
         let ship_index = self.masses.len() - 1;
@@ -378,9 +371,9 @@ impl Masses {
             ship.accelerate(1.);
         }
 
-        for mass in &mut self.masses {
-            mass.frame_move(self.simulated_seconds_per_frame);
-        }
+        //for mass in &mut self.masses {
+        //    mass.frame_move(self.simulated_seconds_per_frame);
+        //}
 
         self.simulated_seconds += self.simulated_seconds_per_frame;
     }
