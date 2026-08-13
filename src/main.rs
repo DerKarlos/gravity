@@ -5,11 +5,14 @@ mod vec_space;
 use macroquad::prelude::*;
 use mass::*;
 
+const WINDOW_WIDTH: f32 = 1000.;
+const WINDOW_HEIGHT: f32 = 708.;
+
 fn conf() -> Conf {
     Conf {
         window_title: String::from("Gravity Sim Game"),
-        window_width: 1000,
-        window_height: 708,
+        window_width: WINDOW_WIDTH as i32,
+        window_height: WINDOW_HEIGHT as i32,
         window_resizable: false,
         ..Default::default()
     }
@@ -77,12 +80,36 @@ fn set_masses(case: i16) -> Masses {
     //println!("{}", seconds_per_orbit);
 }
 
+fn line_color(sub: i16) -> Color {
+    const LIGHT: f32 = 0.3;
+    const MEDIUM: f32 = 0.25;
+    const DARK: f32 = 0.2;
+    let mut a: f32 = DARK;
+    if sub % 5 == 0 {
+        if sub % 10 == 0 { a = LIGHT } else { a = MEDIUM }
+    }
+    Color {
+        r: 0.,
+        g: 1.,
+        b: 0.,
+        a,
+    }
+}
+
 #[macroquad::main(conf)]
 async fn main() {
     let mut masses = set_masses(1);
 
     let mut frame_delta_sum = 0.0;
 
+    // simulation logic
+    let dt_sim = SECONDS_PER_YEAR / SECONDS_PER_ORBIT * SIM_TIME;
+    for _ in 0..PREDICT_COUNT {
+        masses.simulate(dt_sim);
+    }
+    // masses.predict();
+
+    let mut simulation_index: usize = 0;
     loop {
         if let Some(char) = get_char_pressed() {
             // println!("pressed char {:?}!", char);
@@ -128,22 +155,58 @@ async fn main() {
             masses.planing_burn_time(-1.);
         }
 
-        let dt_sim = SECONDS_PER_YEAR / SECONDS_PER_ORBIT * SIM_TIME;
         let frame_delta_time: f64 = (get_frame_time() as f64).min(1.0);
         frame_delta_sum += frame_delta_time;
 
+        // Simulate nothing or one ore some simulate steps
         while frame_delta_sum > SIM_TIME {
             frame_delta_sum -= SIM_TIME;
-
-            // simulation logic and drawing
-            if !masses.planing_mode {
-                masses.simulate(dt_sim);
-            }
-            // masses.predict();
+            simulation_index += 1 % PREDICT_COUNT;
         }
 
-        clear_background(GRAY);
-        masses.draw();
+        clear_background(BLACK);
+
+        const CENTER_X: f32 = WINDOW_WIDTH / 2.;
+        const CENTER_Y: f32 = WINDOW_HEIGHT / 2.;
+
+        let step: f32 = CENTER_X / 30.;
+        let mut x = -CENTER_X;
+        let mut sub = 0;
+        loop {
+            draw_line(
+                (CENTER_X + x) as f32,
+                0.0,
+                (CENTER_X + x) as f32,
+                WINDOW_HEIGHT,
+                1.,
+                line_color(sub),
+            );
+            x += step;
+            sub += 1;
+            if x > CENTER_X {
+                break;
+            }
+        }
+
+        let mut x = -CENTER_Y;
+        let mut sub = 0;
+        loop {
+            draw_line(
+                0.0,
+                (CENTER_Y + x) as f32,
+                WINDOW_WIDTH,
+                (CENTER_Y + x) as f32,
+                1.,
+                line_color(sub),
+            );
+            x += step;
+            sub += 1;
+            if x > CENTER_Y {
+                break;
+            }
+        }
+
+        masses.draw(simulation_index);
 
         next_frame().await
     }

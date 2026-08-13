@@ -1,18 +1,15 @@
 // Project tasks configuration. See https://zed.dev/docs/tasks for documentation.
 //
-// Example:
 [
-  {
-    "label": "Release",
-    "use_new_terminal": false,
-    "command": "cargo run --release",
-    "tags": ["Rust"]
-  },
+
 
   {
+    // new Zed seems to have an error rerunning a task. workaround: close the tab
     "label": "Run",
-    "use_new_terminal": false,
     "command": "cargo run",
+    "cwd": "$ZED_WORKTREE_ROOT",
+    "use_new_terminal": false,
+    "allow_concurrent_runs": true,
     "tags": ["Rust"]
   },
 
@@ -43,6 +40,7 @@
     "args": ["Java"]
   },
 
+  // Example:
   {
     "label": "Example task",
     "command": "for i in {1..5}; do echo \"Hello $i/5\"; sleep 1; done",

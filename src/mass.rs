@@ -5,7 +5,7 @@ use macroquad::prelude::*;
 
 //   Delta time per simulation step. May or may not identicall to the render frame
 pub const SIM_TIME: f64 = 0.02; // 20ms = 50Hz   16.666... = 60Hz
-const PREDICT_COUNT: usize = 500;
+pub const PREDICT_COUNT: usize = 500;
 pub const SECONDS_PER_ORBIT: f64 = 10.;
 
 const WINDOW_WIDTH: i32 = 1000;
@@ -107,15 +107,13 @@ impl<'a> MassData<'a> {
 pub struct Mass {
     position: VecSpace,
     velocity: VecSpace,
-    saved_position: VecSpace,
-    saved_velocity: VecSpace,
     acceleration: VecSpace,
     color: Color,
     _name: String,
     mass: f64,
     diameter: f64,
-    prediction: Vec<VecSpace>,
-    predict_index: usize,
+    prediction: [VecSpace; PREDICT_COUNT],
+    //prediction: Vec<VecSpace>,
 }
 
 impl Mass {
@@ -131,8 +129,6 @@ impl Mass {
             color: data.color,
             diameter: data.diameter,
             mass: data.mass,
-            saved_position: VecSpace::ZERO,
-            saved_velocity: VecSpace::ZERO,
             position: if orbits.is_some() {
                 position
             } else {
@@ -140,16 +136,11 @@ impl Mass {
             },
             velocity,
             acceleration,
-            prediction: Vec::new(),
-            predict_index: 0,
+            prediction: [VecSpace::ZERO; PREDICT_COUNT],
         };
 
         if orbits.is_some() {
-            Self::mass_v_orbit(&mut mass, &mut orbits.unwrap(), data.excentricity);
-        }
-
-        for _ in 0..PREDICT_COUNT {
-            mass.prediction.push(position);
+            Self::set_v_orbit(&mut mass, &mut orbits.unwrap(), data.excentricity);
         }
 
         return mass;
@@ -158,7 +149,7 @@ impl Mass {
     /// Computes orbital velocity for a circular orbit
     /// around a body with `central_mass` at distance `radius` (in meters)
 
-    fn mass_v_orbit(mass: &mut Mass, other: &mut Mass, excentriticy: f64) {
+    fn set_v_orbit(mass: &mut Mass, other: &mut Mass, excentriticy: f64) {
         let signum = if mass.position.y() > 0.0 { 1.0 } else { -1.0 };
         mass.position += other.position;
         mass.velocity += other.velocity;
@@ -171,20 +162,7 @@ impl Mass {
         other.velocity += VecSpace::new(0., velocity / both_masses * mass.mass * signum);
     }
 
-    fn _v_orbit(central_mass: f64, radius: f64) -> f64 {
-        (GRAVITY_CONSTANT_OF_EARTH * central_mass / radius).sqrt()
-    }
-
-    pub fn save(&mut self) {
-        self.saved_position = self.position;
-        self.saved_velocity = self.velocity;
-    }
-
-    pub fn restore(&mut self) {
-        self.position = self.saved_position;
-        self.velocity = self.saved_velocity;
-    }
-
+    // only used for a ship (no mass)
     pub fn accelerate(&mut self, acceleration: f64) {
         let direction = self.velocity.normalized();
         self.acceleration += direction * acceleration * 1.;
@@ -202,24 +180,26 @@ impl Mass {
         other.acceleration += acceleration_vector;
     }
 
-    pub fn move_seconds(&mut self, dt_sim: f64) {
+    pub fn move_seconds(&mut self, dt_sim: f64, pi: usize) {
         self.velocity += self.acceleration * dt_sim;
         self.position += self.velocity * dt_sim;
         self.acceleration.set_zero();
+        self.prediction[pi] = self.position;
     }
 
-    pub fn draw(&self, masses: &Masses) {
+    pub fn draw(&self, masses: &Masses, simulation_index: usize) {
         // sqrt(sqrt()) scaling like Kotlin code
         let mut size = ((self.diameter / M_AU).sqrt().sqrt() / 2.0 * DRAW_FACT) as i32;
         size = size.clamp(DRAW_MIN, DRAW_MAX);
 
-        let screen_pos = masses.scale(&self.position);
+        let screen_pos = masses.scale(&self.prediction[simulation_index]);
         draw_circle(
             screen_pos.x() as f32,
             screen_pos.y() as f32,
             size as f32,
             self.color,
         );
+        //println!("x/y {}/{}", screen_pos.x() as f32, screen_pos.y() as f32);
 
         let mut last_pos = screen_pos;
         for position in &self.prediction {
@@ -232,10 +212,10 @@ impl Mass {
                     this_pos.x() as f32,
                     this_pos.y() as f32,
                     0.1,
-                    WHITE,
+                    self.color,
                 );
             } else {
-                draw_rectangle(this_pos.x() as f32, this_pos.y() as f32, 1., 1., WHITE);
+                draw_rectangle(this_pos.x() as f32, this_pos.y() as f32, 1., 1., self.color);
             }
 
             last_pos = this_pos;
@@ -250,6 +230,7 @@ pub struct Masses {
     pub case: i16,
     masses: Vec<Mass>,
     z_view: f64,
+    predict_index: usize,
     pub maximal_orbit: f64,
     pub seconds_per_orbit: f64,
     pub simulated_seconds: f64,
@@ -267,6 +248,7 @@ impl Masses {
             case,
             masses: Vec::new(),
             z_view: 1.2,
+            predict_index: 0,
             maximal_orbit: 0.0,
             seconds_per_orbit: SECONDS_PER_ORBIT,
             simulated_seconds: 0.0,
@@ -322,33 +304,34 @@ impl Masses {
         self.burn_time *= 1. + set * 0.0002;
     }
 
-    pub fn predict(&mut self) {
-        for mass in &mut self.masses {
-            mass.save();
-        }
-
-        for _ in 0..PREDICT_COUNT {
-            self.simulate(0.0); //???
-            self.simulated_seconds += self.simulated_seconds_per_frame;
-
-            for mass in &mut self.masses {
-                mass.prediction[mass.predict_index] = mass.position;
-                mass.predict_index = (mass.predict_index + 1) % PREDICT_COUNT;
-                //mass.prediction.push(mass.position);
-                //if mass.prediction.len() > count {
-                //    mass.prediction.remove(0);
-                //}
-            }
-        }
-
-        for mass in &mut self.masses {
-            mass.restore();
-        }
-    }
+    //pub fn _predict(&mut self) {
+    //    for mass in &mut self.masses {
+    //        mass._save();
+    //    }
+    //
+    //    for _ in 0..PREDICT_COUNT {
+    //        self.simulate(0.0); //???
+    //        self.simulated_seconds += self.simulated_seconds_per_frame;
+    //
+    //        for mass in &mut self.masses {
+    //            mass.prediction[mass._predict_index] = mass.position;
+    //            mass._predict_index = (mass._predict_index + 1) % PREDICT_COUNT;
+    //            //mass.prediction.push(mass.position);
+    //            //if mass.prediction.len() > count {
+    //            //    mass.prediction.remove(0);
+    //            //}
+    //        }
+    //    }
+    //
+    //    for mass in &mut self.masses {
+    //        mass._restore();
+    //    }
+    //}
 
     pub fn simulate(&mut self, dt_sim: f64) {
         // each mass drags each other mass, except itselfes
         for i in 0..self.masses.len() {
+            // let drag_values = self.masses[i].get_drag_values();
             for j in (i + 1)..self.masses.len() {
                 let (left, right) = self.masses.split_at_mut(j);
 
@@ -359,9 +342,22 @@ impl Masses {
             }
         }
 
+        // each mass drags each other mass, except itselfes
+        //for i in 0..self.masses.len() {
+        //    for j in (i + 1)..self.masses.len() {
+        //        let (left, right) = self.masses.split_at_mut(j);
+        //
+        //        let a = &mut left[i];
+        //        let b = &mut right[0];
+        //        a.drag(b);
+        //        b.drag(a);
+        //    }
+        //}
+
         for mass in &mut self.masses {
-            mass.move_seconds(dt_sim); // 2.0e4
+            mass.move_seconds(dt_sim, self.predict_index); // 2.0e4
         }
+        self.predict_index += 1;
 
         let ship_index = self.masses.len() - 1;
         let ship = &mut self.masses[ship_index];
@@ -384,12 +380,12 @@ impl Masses {
         *position * (PIXEL as f64 / self.z_view / M_AU) + window_center
     }
 
-    pub fn draw(&mut self) {
+    pub fn draw(&mut self, simulation_index: usize) {
         //??? _ = self.masses.iter().map(|m| m.draw());
         draw_text(self.text.as_str(), 20.0, 20.0, 30.0, DARKGRAY);
 
         for mass in &self.masses {
-            mass.draw(&self);
+            mass.draw(&self, simulation_index);
         }
     }
 }
