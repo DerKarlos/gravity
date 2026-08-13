@@ -5,11 +5,11 @@ use macroquad::prelude::*;
 
 //   Delta time per simulation step. May or may not identicall to the render frame
 pub const SIM_TIME: f64 = 0.02; // 20ms = 50Hz   16.666... = 60Hz
-pub const PREDICT_COUNT: usize = 500;
-pub const SECONDS_PER_ORBIT: f64 = 10.;
+pub const PREDICT_COUNT: usize = 900;
+pub const SECONDS_PER_ORBIT: f64 = 10.; // eefault for earth
 
-const WINDOW_WIDTH: i32 = 1000;
-const WINDOW_HEIGHT: i32 = 680; // ??? calculate frame
+pub const WINDOW_WIDTH: f32 = 1000.;
+pub const WINDOW_HEIGHT: f32 = 680.; // ??? calculate frame
 
 pub const GRAVITY_CONSTANT_OF_EARTH: f64 = 6.67384e-11; // m^3/(kg*s^2)
 pub const M_AU: f64 = 149_597_870_700.0; // m per Astronomic Unit
@@ -22,7 +22,7 @@ pub const SECONDS_PER_YEAR: f64 = SECONDS_PER_DAY * 365.25;
 
 // Die kleinere Ausdehnung zählt als normaler darstellbar Bildpunktebereich
 // The smallest extend of the window counts as visible screen range
-const PIXEL: i32 = WINDOW_HEIGHT / 2; // todo: do it dynamic!
+const PIXEL: i32 = WINDOW_HEIGHT as i32 / 2; // todo: do it dynamic!
 
 // ------------------- SI UNIT VALUE KONVERT OPTIONS  -------------------
 
@@ -105,15 +105,14 @@ impl<'a> MassData<'a> {
 
 #[derive(Debug, Clone)]
 pub struct Mass {
-    position: VecSpace,
-    velocity: VecSpace,
-    acceleration: VecSpace,
-    color: Color,
     _name: String,
     mass: f64,
     diameter: f64,
-    prediction: [VecSpace; PREDICT_COUNT],
-    //prediction: Vec<VecSpace>,
+    color: Color,
+    acceleration: VecSpace,
+    velocity: VecSpace,
+    position: VecSpace,
+    positions: [VecSpace; PREDICT_COUNT],
 }
 
 impl Mass {
@@ -136,7 +135,7 @@ impl Mass {
             },
             velocity,
             acceleration,
-            prediction: [VecSpace::ZERO; PREDICT_COUNT],
+            positions: [VecSpace::ZERO; PREDICT_COUNT],
         };
 
         if orbits.is_some() {
@@ -184,15 +183,15 @@ impl Mass {
         self.velocity += self.acceleration * dt_sim;
         self.position += self.velocity * dt_sim;
         self.acceleration.set_zero();
-        self.prediction[pi] = self.position;
+        self.positions[pi] = self.position;
     }
 
-    pub fn draw(&self, masses: &Masses, simulation_index: usize) {
+    pub fn draw(&self, masses: &Masses, positions_index: usize) {
         // sqrt(sqrt()) scaling like Kotlin code
         let mut size = ((self.diameter / M_AU).sqrt().sqrt() / 2.0 * DRAW_FACT) as i32;
         size = size.clamp(DRAW_MIN, DRAW_MAX);
 
-        let screen_pos = masses.scale(&self.prediction[simulation_index]);
+        let screen_pos = masses.scale(&self.positions[positions_index]);
         draw_circle(
             screen_pos.x() as f32,
             screen_pos.y() as f32,
@@ -202,7 +201,7 @@ impl Mass {
         //println!("x/y {}/{}", screen_pos.x() as f32, screen_pos.y() as f32);
 
         let mut last_pos = screen_pos;
-        for position in &self.prediction {
+        for position in &self.positions {
             let this_pos = masses.scale(position);
 
             if false {
@@ -230,7 +229,7 @@ pub struct Masses {
     pub case: i16,
     masses: Vec<Mass>,
     z_view: f64,
-    predict_index: usize,
+    pub positions_index: usize,
     pub maximal_orbit: f64,
     pub seconds_per_orbit: f64,
     pub simulated_seconds: f64,
@@ -248,7 +247,7 @@ impl Masses {
             case,
             masses: Vec::new(),
             z_view: 1.2,
-            predict_index: 0,
+            positions_index: 0,
             maximal_orbit: 0.0,
             seconds_per_orbit: SECONDS_PER_ORBIT,
             simulated_seconds: 0.0,
@@ -278,6 +277,20 @@ impl Masses {
         let mass = Mass::new(data, Some(orbits));
         self.masses.push(mass);
         self.masses.len() - 1
+    }
+
+    // Simulate the future positinos
+    pub fn simulate_positions(&mut self) {
+        //let dt_sim = SECONDS_PER_YEAR / SECONDS_PER_ORBIT * SIM_TIME;
+        //println!("{} {}", dt_sim, self.simulated_seconds_per_frame);
+        for _ in 0..PREDICT_COUNT {
+            self.simulate(self.simulated_seconds_per_frame);
+        }
+    }
+
+    pub fn simulate_next_position(&mut self) {
+        //let dt_sim = SECONDS_PER_YEAR / self.seconds_per_orbit * SIM_TIME;
+        self.simulate(self.simulated_seconds_per_frame);
     }
 
     pub fn ship_accelerate(&mut self, acceleration: f64) {
@@ -355,9 +368,10 @@ impl Masses {
         //}
 
         for mass in &mut self.masses {
-            mass.move_seconds(dt_sim, self.predict_index); // 2.0e4
+            mass.move_seconds(dt_sim, self.positions_index); // 2.0e4
         }
-        self.predict_index += 1;
+        self.positions_index += 1;
+        self.positions_index %= PREDICT_COUNT;
 
         let ship_index = self.masses.len() - 1;
         let ship = &mut self.masses[ship_index];
@@ -375,17 +389,25 @@ impl Masses {
     }
 
     pub fn scale(&self, position: &VecSpace) -> VecSpace {
+        // return f32 (x,y) ???
         let window_center: VecSpace =
-            VecSpace::new((WINDOW_WIDTH / 2) as f64, (WINDOW_HEIGHT / 2) as f64);
+            VecSpace::new(WINDOW_WIDTH as f64 / 2., WINDOW_HEIGHT as f64 / 2.);
         *position * (PIXEL as f64 / self.z_view / M_AU) + window_center
     }
 
-    pub fn draw(&mut self, simulation_index: usize) {
+    pub fn draw(&mut self) {
         //??? _ = self.masses.iter().map(|m| m.draw());
-        draw_text(self.text.as_str(), 20.0, 20.0, 30.0, DARKGRAY);
+
+        draw_text(
+            format!("{} {}", self.text, self.positions_index).as_str(),
+            20.0,
+            20.0,
+            30.0,
+            DARKGRAY,
+        );
 
         for mass in &self.masses {
-            mass.draw(&self, simulation_index);
+            mass.draw(&self, self.positions_index);
         }
     }
 }

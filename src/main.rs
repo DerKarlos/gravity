@@ -5,9 +5,6 @@ mod vec_space;
 use macroquad::prelude::*;
 use mass::*;
 
-const WINDOW_WIDTH: f32 = 1000.;
-const WINDOW_HEIGHT: f32 = 708.;
-
 fn conf() -> Conf {
     Conf {
         window_title: String::from("Gravity Sim Game"),
@@ -46,7 +43,7 @@ fn set_masses(case: i16) -> Masses {
         }
 
         3 => {
-            masses.set_text("Earth & Ship & Luna");
+            masses.set_text("Earth & Luna & Ship");
             masses.seconds_per_orbit = 2000.;
             let earth = masses.add_at_place(&earth_data);
             masses.add_in_orbit(&luna_data, earth);
@@ -63,21 +60,21 @@ fn set_masses(case: i16) -> Masses {
 
         _ => {
             masses.set_text("Test");
-            masses.seconds_per_orbit = 50000.;
+            masses.seconds_per_orbit = 50000.; // it is "per earth orbit"! Use maximal_orbit to ???
             let earth = masses.add_at_place(&earth_data);
             masses.add_in_orbit(&luna_data.multiplied_orbit_radius(0.1), earth);
             masses.add_in_orbit(&ship_data, earth);
         }
     };
 
+    // let dt_sim =  SIM_TIME * SECONDS_PER_YEAR / SECONDS_PER_ORBIT;
+
     masses.simulated_seconds_per_secound = SECONDS_PER_YEAR / masses.seconds_per_orbit;
     masses.simulated_seconds_per_frame = SIM_TIME * masses.simulated_seconds_per_secound;
 
-    masses
+    masses.simulate_positions();
 
-    //println!("{}", seconds_per_orbit);
-    //seconds_per_orbit = 1e19 / masses.maximal_orbit / masses.maximal_orbit;
-    //println!("{}", seconds_per_orbit);
+    masses
 }
 
 fn line_color(sub: i16) -> Color {
@@ -102,14 +99,6 @@ async fn main() {
 
     let mut frame_delta_sum = 0.0;
 
-    // simulation logic
-    let dt_sim = SECONDS_PER_YEAR / SECONDS_PER_ORBIT * SIM_TIME;
-    for _ in 0..PREDICT_COUNT {
-        masses.simulate(dt_sim);
-    }
-    // masses.predict();
-
-    let mut simulation_index: usize = 0;
     loop {
         if let Some(char) = get_char_pressed() {
             // println!("pressed char {:?}!", char);
@@ -155,17 +144,9 @@ async fn main() {
             masses.planing_burn_time(-1.);
         }
 
-        let frame_delta_time: f64 = (get_frame_time() as f64).min(1.0);
-        frame_delta_sum += frame_delta_time;
-
-        // Simulate nothing or one ore some simulate steps
-        while frame_delta_sum > SIM_TIME {
-            frame_delta_sum -= SIM_TIME;
-            simulation_index += 1 % PREDICT_COUNT;
-        }
-
         clear_background(BLACK);
 
+        // fn draw_lines, were to ???
         const CENTER_X: f32 = WINDOW_WIDTH / 2.;
         const CENTER_Y: f32 = WINDOW_HEIGHT / 2.;
 
@@ -174,9 +155,9 @@ async fn main() {
         let mut sub = 0;
         loop {
             draw_line(
-                (CENTER_X + x) as f32,
+                CENTER_X + x,
                 0.0,
-                (CENTER_X + x) as f32,
+                CENTER_X + x,
                 WINDOW_HEIGHT,
                 1.,
                 line_color(sub),
@@ -193,9 +174,9 @@ async fn main() {
         loop {
             draw_line(
                 0.0,
-                (CENTER_Y + x) as f32,
+                CENTER_Y + x,
                 WINDOW_WIDTH,
-                (CENTER_Y + x) as f32,
+                CENTER_Y + x,
                 1.,
                 line_color(sub),
             );
@@ -206,7 +187,17 @@ async fn main() {
             }
         }
 
-        masses.draw(simulation_index);
+        masses.draw();
+
+        // simulate next position
+        let frame_delta_time: f64 = (get_frame_time() as f64).min(1.0);
+        frame_delta_sum += frame_delta_time;
+
+        // Simulate nothing or one ore some simulation steps
+        while frame_delta_sum > SIM_TIME {
+            frame_delta_sum -= SIM_TIME;
+            masses.simulate_next_position();
+        }
 
         next_frame().await
     }
