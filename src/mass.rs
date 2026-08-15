@@ -3,22 +3,20 @@ use macroquad::prelude::*;
 
 ///// Parameter /////
 
-//   Delta time per simulation step. May or may not identicall to the render frame
-pub const SIM_TIME: f64 = 0.02; // 20ms = 50Hz   16.666... = 60Hz
+// About like the framerate in Hz, but will be checked and repeated if needed
+pub const SIMULATION_STEPS_PER_SECOND: f64 = 50.;
+
 pub const PREDICT_COUNT: usize = 900;
-pub const SECONDS_PER_ORBIT: f64 = 10.; // eefault for earth
+pub const DEFAULT_SECONDS_PER_ORBIT: f64 = 10.; // default for earth!!! weg???
 
 pub const WINDOW_WIDTH: f32 = 1000.;
 pub const WINDOW_HEIGHT: f32 = 680.; // ??? calculate frame
 
 pub const GRAVITY_CONSTANT_OF_EARTH: f64 = 6.67384e-11; // m^3/(kg*s^2)
-pub const M_AU: f64 = 149_597_870_700.0; // m per Astronomic Unit
-pub const _MAX_GRAVITY_DISTANCE: f64 = 1e38; // [AE]
 pub const DRAW_FACT: f64 = 200.0;
 pub const DRAW_MIN: i32 = 3;
 pub const DRAW_MAX: i32 = 200;
-pub const SECONDS_PER_DAY: f64 = 60. * 60. * 24.;
-pub const SECONDS_PER_YEAR: f64 = SECONDS_PER_DAY * 365.25;
+//b const MAX_GRAVITY_DISTANCE: f64 = 1e38; // [AE]
 
 // Die kleinere Ausdehnung zählt als normaler darstellbar Bildpunktebereich
 // The smallest extend of the window counts as visible screen range
@@ -31,13 +29,16 @@ pub fn km(km: f64) -> f64 {
     km * 1000.
 }
 pub fn au(au: f64) -> f64 {
-    au * M_AU
+    au * 149_597_870_700.0 // m per Astronomic Unit
 }
-pub fn kg(kg: f64) -> f64 {
-    kg
+pub fn one_au() -> f64 {
+    au(1.)
 }
 
 // masses (wheight)
+pub fn kg(kg: f64) -> f64 {
+    kg
+}
 pub fn mass_earth(earth: f64) -> f64 {
     earth * 5.974e24
 }
@@ -108,6 +109,7 @@ pub struct Mass {
     _name: String,
     mass: f64,
     diameter: f64,
+    orbit_time: f64,
     color: Color,
     acceleration: VecSpace,
     velocity: VecSpace,
@@ -127,6 +129,7 @@ impl Mass {
             _name: data.name.to_string(),
             color: data.color,
             diameter: data.diameter,
+            orbit_time: 0.,
             mass: data.mass,
             position: if orbits.is_some() {
                 position
@@ -139,7 +142,7 @@ impl Mass {
         };
 
         if orbits.is_some() {
-            Self::set_v_orbit(&mut mass, &mut orbits.unwrap(), data.excentricity);
+            mass.orbit_time = Self::set_v_orbit(&mut mass, &mut orbits.unwrap(), data.excentricity);
         }
 
         return mass;
@@ -148,7 +151,7 @@ impl Mass {
     /// Computes orbital velocity for a circular orbit
     /// around a body with `central_mass` at distance `radius` (in meters)
 
-    fn set_v_orbit(mass: &mut Mass, other: &mut Mass, excentriticy: f64) {
+    fn set_v_orbit(mass: &mut Mass, other: &mut Mass, excentriticy: f64) -> f64 {
         let signum = if mass.position.y() > 0.0 { 1.0 } else { -1.0 };
         mass.position += other.position;
         mass.velocity += other.velocity;
@@ -159,6 +162,10 @@ impl Mass {
             (GRAVITY_CONSTANT_OF_EARTH * both_masses / radius).sqrt() * (1. - excentriticy);
         mass.velocity += VecSpace::new(0., -velocity / both_masses * other.mass * signum);
         other.velocity += VecSpace::new(0., velocity / both_masses * mass.mass * signum);
+
+        // calculate the real time for one orbital period in seconds
+        2.0 * std::f64::consts::PI
+            * (radius.powi(3) / (GRAVITY_CONSTANT_OF_EARTH * (mass.mass + other.mass))).sqrt()
     }
 
     // only used for a ship (no mass)
@@ -173,7 +180,7 @@ impl Mass {
         distance_vector.normalize();
 
         // F = force (N) : m = mass (kg) / r² = distance² (m²) * G = 6.67430 × 10⁻¹¹ m³/(kg·s²)
-        let acceleration = self.mass / (distance * distance) * GRAVITY_CONSTANT_OF_EARTH; //??? * MYSTIC_G_FACT;
+        let acceleration = self.mass / (distance * distance) * GRAVITY_CONSTANT_OF_EARTH;
         let acceleration_vector = distance_vector * acceleration;
 
         other.acceleration += acceleration_vector;
@@ -188,7 +195,7 @@ impl Mass {
 
     pub fn draw(&self, masses: &Masses, positions_index: usize) {
         // sqrt(sqrt()) scaling like Kotlin code
-        let mut size = ((self.diameter / M_AU).sqrt().sqrt() / 2.0 * DRAW_FACT) as i32;
+        let mut size = ((self.diameter / one_au()).sqrt().sqrt() / 2.0 * DRAW_FACT) as i32;
         size = size.clamp(DRAW_MIN, DRAW_MAX);
 
         let screen_pos = masses.scale(&self.positions[positions_index]);
@@ -230,10 +237,10 @@ pub struct Masses {
     masses: Vec<Mass>,
     z_view: f64,
     pub positions_index: usize,
-    pub maximal_orbit: f64,
+    pub maximal_orbit_radius: f64,
+    pub maximal_orbit_time: f64,
     pub seconds_per_orbit: f64,
     pub simulated_seconds: f64,
-    pub simulated_seconds_per_secound: f64,
     pub simulated_seconds_per_frame: f64,
     pub planing_mode: bool,
     start_time: f64,
@@ -248,10 +255,10 @@ impl Masses {
             masses: Vec::new(),
             z_view: 1.2,
             positions_index: 0,
-            maximal_orbit: 0.0,
-            seconds_per_orbit: SECONDS_PER_ORBIT,
+            maximal_orbit_radius: 0.0,
+            maximal_orbit_time: 0.0,
+            seconds_per_orbit: DEFAULT_SECONDS_PER_ORBIT,
             simulated_seconds: 0.0,
-            simulated_seconds_per_secound: 0.0,
             simulated_seconds_per_frame: 0.0,
             planing_mode: false,
             start_time: 0.0,
@@ -271,25 +278,27 @@ impl Masses {
 
     pub fn add_in_orbit(&mut self, data: &MassData, orbits: usize) -> usize {
         let orbits = &mut self.masses[orbits];
-        self.maximal_orbit = data.orbit_radius.max(self.maximal_orbit);
-        self.z_view = 1.1 * self.maximal_orbit / M_AU;
+        self.maximal_orbit_radius = data.orbit_radius.max(self.maximal_orbit_radius);
+        self.z_view = 1.1 * self.maximal_orbit_radius / one_au();
         //println!("max orbit: {}", self.maximal_orbit);
         let mass = Mass::new(data, Some(orbits));
+        self.maximal_orbit_time = self.maximal_orbit_time.max(mass.orbit_time);
         self.masses.push(mass);
         self.masses.len() - 1
     }
 
-    // Simulate the future positinos
+    // initially simulate all the future positinos
     pub fn simulate_positions(&mut self) {
-        //let dt_sim = SECONDS_PER_YEAR / SECONDS_PER_ORBIT * SIM_TIME;
-        //println!("{} {}", dt_sim, self.simulated_seconds_per_frame);
+        // All masses are there, calculate the simulation time by the maximal orbit time
+        self.simulated_seconds_per_frame =
+            self.maximal_orbit_time / SIMULATION_STEPS_PER_SECOND / self.seconds_per_orbit;
+
         for _ in 0..PREDICT_COUNT {
             self.simulate(self.simulated_seconds_per_frame);
         }
     }
 
     pub fn simulate_next_position(&mut self) {
-        //let dt_sim = SECONDS_PER_YEAR / self.seconds_per_orbit * SIM_TIME;
         self.simulate(self.simulated_seconds_per_frame);
     }
 
@@ -316,30 +325,6 @@ impl Masses {
     pub fn planing_burn_time(&mut self, set: f64) {
         self.burn_time *= 1. + set * 0.0002;
     }
-
-    //pub fn _predict(&mut self) {
-    //    for mass in &mut self.masses {
-    //        mass._save();
-    //    }
-    //
-    //    for _ in 0..PREDICT_COUNT {
-    //        self.simulate(0.0); //???
-    //        self.simulated_seconds += self.simulated_seconds_per_frame;
-    //
-    //        for mass in &mut self.masses {
-    //            mass.prediction[mass._predict_index] = mass.position;
-    //            mass._predict_index = (mass._predict_index + 1) % PREDICT_COUNT;
-    //            //mass.prediction.push(mass.position);
-    //            //if mass.prediction.len() > count {
-    //            //    mass.prediction.remove(0);
-    //            //}
-    //        }
-    //    }
-    //
-    //    for mass in &mut self.masses {
-    //        mass._restore();
-    //    }
-    //}
 
     pub fn simulate(&mut self, dt_sim: f64) {
         // each mass drags each other mass, except itselfes
@@ -392,7 +377,7 @@ impl Masses {
         // return f32 (x,y) ???
         let window_center: VecSpace =
             VecSpace::new(WINDOW_WIDTH as f64 / 2., WINDOW_HEIGHT as f64 / 2.);
-        *position * (PIXEL as f64 / self.z_view / M_AU) + window_center
+        *position * (PIXEL as f64 / self.z_view / one_au()) + window_center
     }
 
     pub fn draw(&mut self) {

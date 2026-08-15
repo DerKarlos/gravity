@@ -44,7 +44,6 @@ fn set_masses(case: i16) -> Masses {
 
         3 => {
             masses.set_text("Earth & Luna & Ship");
-            masses.seconds_per_orbit = 2000.;
             let earth = masses.add_at_place(&earth_data);
             masses.add_in_orbit(&luna_data, earth);
             masses.add_in_orbit(&ship_data, earth);
@@ -60,17 +59,11 @@ fn set_masses(case: i16) -> Masses {
 
         _ => {
             masses.set_text("Test");
-            masses.seconds_per_orbit = 50000.; // it is "per earth orbit"! Use maximal_orbit to ???
             let earth = masses.add_at_place(&earth_data);
             masses.add_in_orbit(&luna_data.multiplied_orbit_radius(0.1), earth);
             masses.add_in_orbit(&ship_data, earth);
         }
     };
-
-    // let dt_sim =  SIM_TIME * SECONDS_PER_YEAR / SECONDS_PER_ORBIT;
-
-    masses.simulated_seconds_per_secound = SECONDS_PER_YEAR / masses.seconds_per_orbit;
-    masses.simulated_seconds_per_frame = SIM_TIME * masses.simulated_seconds_per_secound;
 
     masses.simulate_positions();
 
@@ -194,8 +187,9 @@ async fn main() {
         frame_delta_sum += frame_delta_time;
 
         // Simulate nothing or one ore some simulation steps
-        while frame_delta_sum > SIM_TIME {
-            frame_delta_sum -= SIM_TIME;
+        let simulation_step_time = 1. / SIMULATION_STEPS_PER_SECOND;
+        while frame_delta_sum > simulation_step_time {
+            frame_delta_sum -= simulation_step_time;
             masses.simulate_next_position();
         }
 
