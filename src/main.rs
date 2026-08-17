@@ -1,9 +1,10 @@
 mod mass;
+mod simulation;
 mod vec_space;
 
-// macroquad.rs
 use macroquad::prelude::*;
 use mass::*;
+use simulation::*;
 
 use crate::vec_space::VecSpace;
 
@@ -17,7 +18,7 @@ fn conf() -> Conf {
     }
 }
 
-fn set_masses(case: i16) -> Masses {
+fn set_masses(case: i16) -> Simulation {
     // some masses
     let sun_data = MassData::fixstar("sun", YELLOW, km(1.3914e6), mass_sol(1.));
     let sun2_data = MassData::orbiter("sun2", GOLD, km(1.3914e6), mass_sol(1.), au(0.5));
@@ -27,49 +28,50 @@ fn set_masses(case: i16) -> Masses {
     let luna_data = MassData::orbiter("luna", RED, km(3476.), kg(7.349e22), km(370171.));
     let _jupiter_d = MassData::orbiter("jupiter", GREEN, km(142984.0), kg(1.899e27), au(25e3));
     let comet_data = MassData::ellipse("comet", WHITE, km(500.0), kg(1e6), au(1.3), 0.4);
-    let ship_data = MassData::orbiter("ship", MAGENTA, km(10.0), kg(2e3), km(5000.));
+    let ship_data = MassData::orbiter("ship", WHITE, 10.0, 0.0, km(80000.)); // the real 300km are not visible
 
-    let mut masses = Masses::new(case);
+    let mut simulation = Simulation::new(case);
 
     match case {
         1 => {
-            masses.set_text("Sun, Earth");
-            let sun = masses.add_at_place(&sun_data);
-            masses.add_in_orbit(&earth_data, sun);
+            simulation.set_text("Sun, Earth");
+            let sun = simulation.add_mass_at_place(&sun_data);
+            simulation.add_mass_in_orbit(&earth_data, sun);
         }
 
         2 => {
-            masses.set_text("double star");
-            let sun = masses.add_at_place(&sun_data);
-            masses.add_in_orbit(&sun2_data, sun);
+            simulation.set_text("double star");
+            let sun = simulation.add_mass_at_place(&sun_data);
+            simulation.add_mass_in_orbit(&sun2_data, sun);
         }
 
         3 => {
-            masses.set_text("Earth & Luna & Ship");
-            let earth = masses.add_at_place(&earth_data);
-            masses.add_in_orbit(&luna_data, earth);
-            masses.add_in_orbit(&ship_data, earth);
+            simulation.set_text("Earth & Luna & Ship");
+            simulation.seconds_per_orbit = 60.;
+            let earth = simulation.add_mass_at_place(&earth_data);
+            simulation.add_mass_in_orbit(&luna_data, earth);
+            simulation.add_ship_in_orbit(&ship_data, earth);
         }
 
         4 => {
-            masses.set_text("Sun, Earth & Luna");
-            let sun = masses.add_at_place(&sun_data);
-            let earth = masses.add_in_orbit(&earth_data, sun);
-            masses.add_in_orbit(&luna_data, earth);
-            masses.add_in_orbit(&comet_data, sun);
+            simulation.set_text("Sun, Earth & Luna");
+            let sun = simulation.add_mass_at_place(&sun_data);
+            let earth = simulation.add_mass_in_orbit(&earth_data, sun);
+            simulation.add_mass_in_orbit(&luna_data, earth);
+            simulation.add_mass_in_orbit(&comet_data, sun);
         }
 
         _ => {
-            masses.set_text("Test");
-            let earth = masses.add_at_place(&earth_data);
-            masses.add_in_orbit(&luna_data.multiplied_orbit_radius(0.1), earth);
-            masses.add_in_orbit(&ship_data, earth);
+            simulation.set_text("Test");
+            let earth = simulation.add_mass_at_place(&earth_data);
+            simulation.add_mass_in_orbit(&luna_data.multiplied_orbit_radius(0.1), earth);
+            simulation.add_mass_in_orbit(&ship_data, earth);
         }
     };
 
-    masses.simulate_positions();
+    simulation.simulate_positions();
 
-    masses
+    simulation
 }
 
 fn line_color(sub: i16) -> Color {
@@ -90,7 +92,7 @@ fn line_color(sub: i16) -> Color {
 
 #[macroquad::main(conf)]
 async fn main() {
-    let mut masses = set_masses(1);
+    let mut masses = set_masses(3);
 
     let mut frame_delta_sum = 0.0;
 
@@ -167,7 +169,7 @@ async fn main() {
     }
 }
 
-fn draw_grid(masses: &mut Masses) {
+fn draw_grid(masses: &mut Simulation) {
     if masses.z_view > masses.z_grid {
         masses.z_grid *= 2.0;
         // println!("z_draw: {}", &masses.z_grid);
