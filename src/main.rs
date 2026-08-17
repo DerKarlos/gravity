@@ -5,6 +5,8 @@ mod vec_space;
 use macroquad::prelude::*;
 use mass::*;
 
+use crate::vec_space::VecSpace;
+
 fn conf() -> Conf {
     Conf {
         window_title: String::from("Gravity Sim Game"),
@@ -113,7 +115,7 @@ async fn main() {
                 '3' => masses = set_masses(3),
                 '4' => masses = set_masses(4),
 
-                _ => println!("Char not used: {:?}!", char),
+                _ => (), // println!("Char not used: {:?}!", char),
             }
         }
 
@@ -137,48 +139,16 @@ async fn main() {
             masses.planing_burn_time(-1.);
         }
 
+        if is_key_down(KeyCode::U) {
+            masses.z_view *= 1.001;
+        }
+        if is_key_down(KeyCode::J) {
+            masses.z_view /= 1.001;
+        }
+
         clear_background(BLACK);
 
-        // fn draw_lines, were to ???
-        const CENTER_X: f32 = WINDOW_WIDTH / 2.;
-        const CENTER_Y: f32 = WINDOW_HEIGHT / 2.;
-
-        let step: f32 = CENTER_X / 30.;
-        let mut x = -CENTER_X;
-        let mut sub = 0;
-        loop {
-            draw_line(
-                CENTER_X + x,
-                0.0,
-                CENTER_X + x,
-                WINDOW_HEIGHT,
-                1.,
-                line_color(sub),
-            );
-            x += step;
-            sub += 1;
-            if x > CENTER_X {
-                break;
-            }
-        }
-
-        let mut x = -CENTER_Y;
-        let mut sub = 0;
-        loop {
-            draw_line(
-                0.0,
-                CENTER_Y + x,
-                WINDOW_WIDTH,
-                CENTER_Y + x,
-                1.,
-                line_color(sub),
-            );
-            x += step;
-            sub += 1;
-            if x > CENTER_Y {
-                break;
-            }
-        }
+        draw_grid(&mut masses);
 
         masses.draw();
 
@@ -194,5 +164,63 @@ async fn main() {
         }
 
         next_frame().await
+    }
+}
+
+fn draw_grid(masses: &mut Masses) {
+    if masses.z_view > masses.z_grid {
+        masses.z_grid *= 2.0;
+        // println!("z_draw: {}", &masses.z_grid);
+    }
+    if masses.z_view < masses.z_grid {
+        masses.z_grid /= 2.0;
+        // println!("z_draw: {}", &masses.z_grid);
+    }
+
+    let max = masses.maximal_orbit_radius * 2. / masses.z_grid;
+    let step = max / 50.;
+
+    let mut x = -max;
+    let mut sub = 0;
+    loop {
+        let start = masses.scale(&VecSpace::new(x, max));
+        let end = masses.scale(&VecSpace::new(x, -max));
+
+        draw_line(
+            start.x() as f32,
+            start.y() as f32,
+            end.x() as f32,
+            end.y() as f32,
+            1.,
+            line_color(sub),
+        );
+
+        sub += 1;
+        x += step;
+        if x > max {
+            break;
+        }
+    }
+
+    let mut x = -max;
+    let mut sub = 0;
+    loop {
+        let start = masses.scale(&VecSpace::new(max, x));
+        let end = masses.scale(&VecSpace::new(-max, x));
+
+        draw_line(
+            start.x() as f32,
+            start.y() as f32,
+            end.x() as f32,
+            end.y() as f32,
+            1.,
+            line_color(sub),
+        );
+
+        sub += 1;
+        x += step;
+        if x > max {
+            break;
+        }
     }
 }

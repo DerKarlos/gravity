@@ -13,14 +13,14 @@ pub const WINDOW_WIDTH: f32 = 1000.;
 pub const WINDOW_HEIGHT: f32 = 680.; // ??? calculate frame
 
 pub const GRAVITY_CONSTANT_OF_EARTH: f64 = 6.67384e-11; // m^3/(kg*s^2)
-pub const DRAW_FACT: f64 = 200.0;
+pub const DRAW_FACT: f64 = 5.;
 pub const DRAW_MIN: i32 = 3;
 pub const DRAW_MAX: i32 = 200;
 //b const MAX_GRAVITY_DISTANCE: f64 = 1e38; // [AE]
 
 // Die kleinere Ausdehnung zählt als normaler darstellbar Bildpunktebereich
 // The smallest extend of the window counts as visible screen range
-const PIXEL: i32 = WINDOW_HEIGHT as i32 / 2; // todo: do it dynamic!
+const MAX_PIXEL_FROM_CENTER: i32 = WINDOW_HEIGHT as i32 / 2; // todo: do it dynamic!
 
 // ------------------- SI UNIT VALUE KONVERT OPTIONS  -------------------
 
@@ -30,9 +30,6 @@ pub fn km(km: f64) -> f64 {
 }
 pub fn au(au: f64) -> f64 {
     au * 149_597_870_700.0 // m per Astronomic Unit
-}
-pub fn one_au() -> f64 {
-    au(1.)
 }
 
 // masses (wheight)
@@ -194,8 +191,8 @@ impl Mass {
     }
 
     pub fn draw(&self, masses: &Masses, positions_index: usize) {
-        // sqrt(sqrt()) scaling like Kotlin code
-        let mut size = ((self.diameter / one_au()).sqrt().sqrt() / 2.0 * DRAW_FACT) as i32;
+        // visible size not real and less proportional to avoid big differences
+        let mut size = (self.diameter.sqrt().sqrt() / DRAW_FACT * masses.z_view) as i32;
         size = size.clamp(DRAW_MIN, DRAW_MAX);
 
         let screen_pos = masses.scale(&self.positions[positions_index]);
@@ -235,7 +232,8 @@ pub struct Masses {
     text: String,
     pub case: i16,
     masses: Vec<Mass>,
-    z_view: f64,
+    pub z_view: f64,
+    pub z_grid: f64,
     pub positions_index: usize,
     pub maximal_orbit_radius: f64,
     pub maximal_orbit_time: f64,
@@ -253,7 +251,8 @@ impl Masses {
             text: String::new(),
             case,
             masses: Vec::new(),
-            z_view: 1.2,
+            z_view: 0.9,
+            z_grid: 0.9,
             positions_index: 0,
             maximal_orbit_radius: 0.0,
             maximal_orbit_time: 0.0,
@@ -279,7 +278,6 @@ impl Masses {
     pub fn add_in_orbit(&mut self, data: &MassData, orbits: usize) -> usize {
         let orbits = &mut self.masses[orbits];
         self.maximal_orbit_radius = data.orbit_radius.max(self.maximal_orbit_radius);
-        self.z_view = 1.1 * self.maximal_orbit_radius / one_au();
         //println!("max orbit: {}", self.maximal_orbit);
         let mass = Mass::new(data, Some(orbits));
         self.maximal_orbit_time = self.maximal_orbit_time.max(mass.orbit_time);
@@ -375,9 +373,12 @@ impl Masses {
 
     pub fn scale(&self, position: &VecSpace) -> VecSpace {
         // return f32 (x,y) ???
+
         let window_center: VecSpace =
             VecSpace::new(WINDOW_WIDTH as f64 / 2., WINDOW_HEIGHT as f64 / 2.);
-        *position * (PIXEL as f64 / self.z_view / one_au()) + window_center
+        // Scale by view, divide by scene multiply by screen, add screen center
+        *position * (self.z_view / self.maximal_orbit_radius * MAX_PIXEL_FROM_CENTER as f64)
+            + window_center
     }
 
     pub fn draw(&mut self) {
