@@ -121,51 +121,53 @@ async fn main() {
             }
         }
 
-        if is_key_down(KeyCode::Space) {
-            masses.ship_accelerate(1.0);
-        }
-        if is_key_down(KeyCode::Backspace) {
-            masses.ship_accelerate(-1.0)
-        }
-
-        if is_key_down(KeyCode::Right) {
-            masses.planing_start_time(1.);
-        }
-        if is_key_down(KeyCode::Left) {
-            masses.planing_start_time(-1.);
-        }
-        if is_key_down(KeyCode::Up) {
-            masses.planing_burn_time(1.);
-        }
-        if is_key_down(KeyCode::Down) {
-            masses.planing_burn_time(-1.);
-        }
-
-        if is_key_down(KeyCode::U) {
-            masses.z_view *= 1.001;
-        }
-        if is_key_down(KeyCode::J) {
-            masses.z_view /= 1.001;
-        }
-
         clear_background(BLACK);
 
         draw_grid(&mut masses);
 
         masses.draw();
 
-        // simulate next position
+        // simulate next position to be drawn in the next loop
         let frame_delta_time: f64 = (get_frame_time() as f64).min(1.0);
         frame_delta_sum += frame_delta_time;
 
         // Simulate nothing or one ore some simulation steps
-        let simulation_step_time = 1. / SIMULATION_STEPS_PER_SECOND;
-        while frame_delta_sum > simulation_step_time {
-            frame_delta_sum -= simulation_step_time;
+        key_down(&mut masses, SIMULATION_STEP_TIME);
+
+        while frame_delta_sum > SIMULATION_STEP_TIME {
+            frame_delta_sum -= SIMULATION_STEP_TIME;
             masses.simulate_next_position();
         }
 
         next_frame().await
+    }
+}
+
+fn key_down(masses: &mut Simulation, simulation_step_time: f64) {
+    if is_key_down(KeyCode::Space) {
+        masses.ship_accelerate(simulation_step_time);
+    }
+    if is_key_down(KeyCode::Backspace) {
+        masses.ship_accelerate(-simulation_step_time)
+    }
+    if is_key_down(KeyCode::Right) {
+        masses.planing_start_time(1.);
+    }
+    if is_key_down(KeyCode::Left) {
+        masses.planing_start_time(-1.);
+    }
+    if is_key_down(KeyCode::Up) {
+        masses.planing_burn_time(1.);
+    }
+    if is_key_down(KeyCode::Down) {
+        masses.planing_burn_time(-1.);
+    }
+
+    if is_key_down(KeyCode::U) {
+        masses.z_view *= 1.001;
+    }
+    if is_key_down(KeyCode::J) {
+        masses.z_view /= 1.001;
     }
 }
 

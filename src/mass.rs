@@ -6,8 +6,9 @@ use macroquad::prelude::*;
 
 // About like the framerate in Hz, but will be checked and repeated if needed
 pub const SIMULATION_STEPS_PER_SECOND: f64 = 50.;
+pub const SIMULATION_STEP_TIME: f64 = 1. / SIMULATION_STEPS_PER_SECOND;
 
-pub const PREDICT_COUNT: usize = 900;
+pub const PREDICT_COUNT: usize = 1000;
 pub const DEFAULT_SECONDS_PER_ORBIT: f64 = 10.; // default for earth!!! weg???
 
 pub const WINDOW_WIDTH: f32 = 1000.;
@@ -104,19 +105,31 @@ impl<'a> MassData<'a> {
 
 #[derive(Debug, Clone)]
 pub struct Mass {
-    _name: String,
+    _name: String, // why not &str ???
     mass: f64,
     diameter: f64,
     pub orbit_time: f64,
     color: Color,
     acceleration: VecSpace,
-    velocity: VecSpace,
-    position: VecSpace,
-    positions: [VecSpace; PREDICT_COUNT],
+    pub velocity: VecSpace,
+    pub position: VecSpace,
+    pub positions: [VecSpace; PREDICT_COUNT],
 }
 
 impl Mass {
-    // "Static" constants
+    pub fn zero() -> Mass {
+        Mass {
+            _name: String::from("ZERO"),
+            mass: 0.,
+            diameter: 0.,
+            orbit_time: 0.,
+            color: BLACK,
+            acceleration: VecSpace::ZERO,
+            velocity: VecSpace::ZERO,
+            position: VecSpace::ZERO,
+            positions: [VecSpace::ZERO; PREDICT_COUNT],
+        }
+    }
 
     pub fn new(data: &MassData, orbits: Option<&mut Mass>) -> Mass {
         let position = VecSpace::new(data.orbit_radius, 0.0);
@@ -168,10 +181,9 @@ impl Mass {
             * (radius.powi(3) / (GRAVITY_CONSTANT_OF_EARTH * (mass.mass + other.mass))).sqrt()
     }
 
-    // only used for a ship (no mass)
-    pub fn accelerate(&mut self, acceleration: f64) {
+    pub fn ship_accelerate(&mut self, acceleration: f64) {
         let direction = self.velocity.normalized();
-        self.acceleration += direction * acceleration * 1.;
+        self.acceleration += direction * acceleration;
     }
 
     pub fn drag(&self, other: &mut Mass) {
@@ -186,11 +198,17 @@ impl Mass {
         other.acceleration += acceleration_vector;
     }
 
-    pub fn move_seconds(&mut self, dt_sim: f64, pi: usize) {
-        self.velocity += self.acceleration * dt_sim;
-        self.position += self.velocity * dt_sim;
+    pub fn move_seconds(&mut self, simulated_seconds_per_step: f64, positions_index: usize) {
+        self.velocity += self.acceleration * simulated_seconds_per_step;
+        self.position += self.velocity * simulated_seconds_per_step;
         self.acceleration.set_zero();
-        self.positions[pi] = self.position;
+        self.positions[positions_index] = self.position;
+    }
+
+    pub fn _move_ship(&mut self, simulated_seconds_per_step: f64, _positions_index: usize) {
+        self.velocity += self.acceleration * simulated_seconds_per_step;
+        self.position += self.velocity * simulated_seconds_per_step;
+        self.acceleration.set_zero();
     }
 
     pub fn draw(&self, masses: &Simulation, positions_index: usize) {
