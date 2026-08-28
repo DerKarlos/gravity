@@ -13,7 +13,7 @@ pub struct Simulation {
     ship_velocity: VecSpace,
     pub z_view: f64,
     pub z_grid: f64,
-    pub positions_index: usize,
+    pub positions_draw_and_write_index: usize,
     pub maximal_orbit_radius: f64,
     pub maximal_orbit_time: f64,
     pub seconds_per_orbit: f64,
@@ -35,8 +35,9 @@ impl Simulation {
             ship_velocity: VecSpace::ZERO,
             z_view: 0.9,
             z_grid: 0.9,
-            positions_index: 0,
-            maximal_orbit_radius: 0.0,
+            // draw oldest position, write new position, increment after write
+            positions_draw_and_write_index: 0,
+            maximal_orbit_radius: 1.0,
             maximal_orbit_time: 0.0,
             seconds_per_orbit: DEFAULT_SECONDS_PER_ORBIT,
             simulated_seconds: 0.0,
@@ -74,25 +75,55 @@ impl Simulation {
     }
 
     // initially simulate all the future positinos
-    pub fn simulate_positions(&mut self) {
+    pub fn predict_positions(&mut self) {
         // All masses are there, calculate the simulation time by the maximal orbit time
         self.simulated_seconds_per_step =
             self.maximal_orbit_time / SIMULATION_STEPS_PER_SECOND / self.seconds_per_orbit;
 
         for _ in 1..PREDICT_COUNT {
-            self.simulate_step(self.simulated_seconds_per_step);
+            self.simulate_masses_step(self.simulated_seconds_per_step);
+            self.positions_draw_and_write_index = self.next_position(); //äää
         }
     }
 
-    pub fn simulate_next_position(&mut self) {
-        self.simulate_step(self.simulated_seconds_per_step);
+    pub fn predict_ship_positions(&mut self) {
+        // the ship is moved independend of positions_index
+        // prediktor for ship: save predict restore
+        self.ship_position = self.ship.position;
+        self.ship_velocity = self.ship.velocity;
 
-        // and the ship is moved not at the end but the start of the prediction
-        //let i = self.next_position();
-        //if let Some(ship) = &mut self.ship {
-        //    // positions_index
-        //    ship.move_seconds(self.simulated_seconds_per_step, i);
-        //}
+        let mut drag_index = self.positions_draw_and_write_index;
+        for move_index in 1..PREDICT_COUNT {
+            // lett all masses drag the ship
+            for mass in &self.masses {
+                mass.drag_from_position(&mut self.ship, drag_index);
+            }
+            self.ship
+                .move_seconds(self.simulated_seconds_per_step, move_index);
+            drag_index += 1;
+            drag_index %= PREDICT_COUNT;
+        }
+
+        self.ship.position = self.ship_position;
+        self.ship.velocity = self.ship_velocity;
+    }
+
+    pub fn simulate_step(&mut self) {
+        // First (ship drag and move and) all tragging then all (other) moves
+
+        // The ship is moved independend of positions_index
+        for mass in &self.masses {
+            mass.drag_from_position(&mut self.ship, self.positions_draw_and_write_index);
+        }
+
+        // Move ship with actual index
+        self.ship.move_seconds(self.simulated_seconds_per_step, 0);
+
+        // Move masses and increment index
+        self.simulate_masses_step(self.simulated_seconds_per_step);
+
+        // Predict ship with new index
+        self.predict_ship_positions();
     }
 
     pub fn ship_accelerate(&mut self, acceleration: f64) {
@@ -117,7 +148,7 @@ impl Simulation {
         self.burn_time *= 1. + set * 0.0002;
     }
 
-    pub fn simulate_step(&mut self, simulated_seconds_per_step: f64) {
+    pub fn simulate_masses_step(&mut self, simulated_seconds_per_step: f64) {
         // First drag, sedound move
 
         // Each mass drags each other mass, except itselfes
@@ -132,53 +163,24 @@ impl Simulation {
                 b.drag(a);
             }
 
-            // The ship is also dragged by all masses
-            let mass = &mut self.masses[i];
-            mass.drag(&mut self.ship);
+            // all masses also drag the ship
+            //let mass = &self.masses[i];
+            //mass.drag(&mut self.ship)
         }
-
-        // Now move masses and ??? SHIP, but another way!
 
         // Move the masses at the head of the prediction
         for mass in &mut self.masses {
-            mass.move_seconds(simulated_seconds_per_step, self.positions_index);
+            mass.move_seconds(
+                simulated_seconds_per_step,
+                self.positions_draw_and_write_index,
+            );
         }
-
-        self.positions_index = self.next_position();
-
-        // and the ship is moved independend of positions_index
-        // move ship
-        self.ship.move_seconds(simulated_seconds_per_step, 0);
-
-        // prediktor for ship: save predickt restore äää
-
-        self.ship_position = self.ship.position;
-        self.ship_velocity = self.ship.velocity;
-
-        for index in 1..PREDICT_COUNT {
-            for i_mass in 0..self.masses.len() {
-                let mass = &mut self.masses[i_mass];
-                mass.drag(&mut self.ship);
-            }
-            self.ship.move_seconds(simulated_seconds_per_step, index);
-        }
-
-        self.ship.position = self.ship_position;
-        self.ship.velocity = self.ship_velocity;
-
-        //let ship_index = self.masses.len() - 1;
-        //let ship = &mut self.masses[ship_index];
-        //let start = self.start_time;
-        //let end = self.start_time + self.burn_time;
-        //if self.simulated_seconds > start && self.simulated_seconds < end {
-        //    ship.accelerate(1.);
-        //}
 
         self.simulated_seconds += self.simulated_seconds_per_step;
     }
 
     pub fn next_position(&self) -> usize {
-        (self.positions_index + 1) % PREDICT_COUNT
+        (self.positions_draw_and_write_index + 1) % PREDICT_COUNT
     }
 
     pub fn scale(&self, position: &VecSpace) -> VecSpace {
@@ -192,10 +194,8 @@ impl Simulation {
     }
 
     pub fn draw(&mut self) {
-        //??? _ = self.masses.iter().map(|m| m.draw());
-
         draw_text(
-            format!("{} {}", self.text, self.positions_index).as_str(),
+            format!("{} {}", self.text, self.positions_draw_and_write_index).as_str(),
             20.0,
             20.0,
             30.0,
@@ -203,7 +203,7 @@ impl Simulation {
         );
 
         for mass in &self.masses {
-            mass.draw(&self, self.positions_index);
+            mass.draw(&self, self.positions_draw_and_write_index);
         }
 
         self.ship.draw(&self, 0);

@@ -69,8 +69,8 @@ fn set_masses(case: i16) -> Simulation {
         }
     };
 
-    simulation.simulate_positions();
-
+    simulation.predict_positions();
+    simulation.predict_ship_positions();
     simulation
 }
 
@@ -92,10 +92,11 @@ fn line_color(sub: i16) -> Color {
 
 #[macroquad::main(conf)]
 async fn main() {
-    let mut masses = set_masses(3);
+    let mut simulation = set_masses(3);
 
     let mut frame_delta_sum = 0.0;
 
+    let mut ttt = false;
     loop {
         if let Some(char) = get_char_pressed() {
             // println!("pressed char {:?}!", char);
@@ -103,19 +104,19 @@ async fn main() {
                 '\u{1b}' => break, // KeyCode::Escape
                 '\r' => {
                     // KeyCode::Enter
-                    masses.toggle_planing_mode();
+                    simulation.toggle_planing_mode();
                     println!(
                         "planing_mode: {} {}",
-                        masses.planing_mode, masses.simulated_seconds
+                        simulation.planing_mode, simulation.simulated_seconds
                     );
                 }
 
-                'r' => masses = set_masses(masses.case),
-                '0' => masses = set_masses(0),
-                '1' => masses = set_masses(1),
-                '2' => masses = set_masses(2),
-                '3' => masses = set_masses(3),
-                '4' => masses = set_masses(4),
+                'r' => simulation = set_masses(simulation.case),
+                '0' => simulation = set_masses(0),
+                '1' => simulation = set_masses(1),
+                '2' => simulation = set_masses(2),
+                '3' => simulation = set_masses(3),
+                '4' => simulation = set_masses(4),
 
                 _ => (), // println!("Char not used: {:?}!", char),
             }
@@ -123,22 +124,31 @@ async fn main() {
 
         clear_background(BLACK);
 
-        draw_grid(&mut masses);
+        draw_grid(&mut simulation);
 
-        masses.draw();
+        simulation.draw();
 
-        // simulate next position to be drawn in the next loop
-        let frame_delta_time: f64 = (get_frame_time() as f64).min(1.0);
-        frame_delta_sum += frame_delta_time;
+        //ttt
+        if true {
+            // simulate next position to be drawn in the next loop
+            let frame_delta_time: f64 = (get_frame_time() as f64).min(1.0);
+            frame_delta_sum += frame_delta_time;
 
-        // Simulate nothing or one ore some simulation steps
-        key_down(&mut masses, SIMULATION_STEP_TIME);
+            // Simulate nothing or one ore some simulation steps
+            key_down(&mut simulation, SIMULATION_STEP_TIME);
 
-        while frame_delta_sum > SIMULATION_STEP_TIME {
-            frame_delta_sum -= SIMULATION_STEP_TIME;
-            masses.simulate_next_position();
+            while frame_delta_sum > SIMULATION_STEP_TIME {
+                frame_delta_sum -= SIMULATION_STEP_TIME;
+                simulation.simulate_step();
+                // set index to next step
+                simulation.positions_draw_and_write_index = simulation.next_position();
+                ttt = true;
+            }
         }
 
+        if ttt {
+            //break;
+        }
         next_frame().await
     }
 }

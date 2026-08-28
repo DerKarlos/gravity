@@ -8,7 +8,7 @@ use macroquad::prelude::*;
 pub const SIMULATION_STEPS_PER_SECOND: f64 = 50.;
 pub const SIMULATION_STEP_TIME: f64 = 1. / SIMULATION_STEPS_PER_SECOND;
 
-pub const PREDICT_COUNT: usize = 1000;
+pub const PREDICT_COUNT: usize = 1000; // ttt 1000
 pub const DEFAULT_SECONDS_PER_ORBIT: f64 = 10.; // default for earth!!! weg???
 
 pub const WINDOW_WIDTH: f32 = 1000.;
@@ -132,9 +132,12 @@ impl Mass {
     }
 
     pub fn new(data: &MassData, orbits: Option<&mut Mass>) -> Mass {
-        let position = VecSpace::new(data.orbit_radius, 0.0);
-        let velocity = VecSpace::ZERO;
-        let acceleration = VecSpace::ZERO;
+        // ignore radius if mass is not in orbit
+        let position = if orbits.is_some() {
+            VecSpace::new(data.orbit_radius, 0.0)
+        } else {
+            VecSpace::ZERO
+        };
 
         let mut mass = Mass {
             _name: data.name.to_string(),
@@ -142,13 +145,9 @@ impl Mass {
             diameter: data.diameter,
             orbit_time: 0.,
             mass: data.mass,
-            position: if orbits.is_some() {
-                position
-            } else {
-                VecSpace::ZERO
-            },
-            velocity,
-            acceleration,
+            position,
+            velocity: VecSpace::ZERO,
+            acceleration: VecSpace::ZERO,
             positions: [VecSpace::ZERO; PREDICT_COUNT],
         };
 
@@ -187,6 +186,10 @@ impl Mass {
     }
 
     pub fn drag(&self, other: &mut Mass) {
+        if other._name == "tttship" {
+            println!("= {} s: {:?} o: {:?}", "=", &self.positions, other.position); //ttt
+        }
+
         let mut distance_vector = self.position - other.position;
         let distance = distance_vector.length();
         distance_vector.normalize();
@@ -198,11 +201,36 @@ impl Mass {
         other.acceleration += acceleration_vector;
     }
 
+    pub fn drag_from_position(&self, other: &mut Mass, position_index: usize) {
+        if other._name == "tttship" {
+            println!(
+                "- {} s: {:?} o: {:?}",
+                position_index, &self.positions[position_index], other.position
+            ); //ttt
+        }
+
+        let mut distance_vector = self.positions[position_index] - other.position;
+        let distance = distance_vector.length();
+        distance_vector.normalize();
+
+        // F = force (N) : m = mass (kg) / r² = distance² (m²) * G = 6.67430 × 10⁻¹¹ m³/(kg·s²)
+        let acceleration = self.mass / (distance * distance) * GRAVITY_CONSTANT_OF_EARTH;
+        let acceleration_vector = distance_vector * acceleration;
+
+        other.acceleration += acceleration_vector;
+    }
+
     pub fn move_seconds(&mut self, simulated_seconds_per_step: f64, positions_index: usize) {
+        if self._name == "tttship" {
+            println!(
+                "{} p: {:?} a: {:?}",
+                positions_index, &self.position, self.acceleration
+            ); //ttt
+        }
         self.velocity += self.acceleration * simulated_seconds_per_step;
         self.position += self.velocity * simulated_seconds_per_step;
-        self.acceleration.set_zero();
         self.positions[positions_index] = self.position;
+        self.acceleration.set_zero();
     }
 
     pub fn _move_ship(&mut self, simulated_seconds_per_step: f64, _positions_index: usize) {
