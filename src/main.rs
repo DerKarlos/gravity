@@ -65,7 +65,16 @@ fn set_masses(case: i16) -> Simulation {
             simulation.set_text("Test");
             let earth = simulation.add_mass_at_place(&earth_data);
             simulation.add_mass_in_orbit(&luna_data.multiplied_orbit_radius(0.1), earth);
-            simulation.add_mass_in_orbit(&ship_data, earth);
+            simulation.add_ship_in_orbit(&ship_data.multiplied_orbit_radius(0.1), earth);
+
+            // All masses are there, calculate the simulation time by the maximal orbit time
+            simulation.simulated_seconds_per_step = simulation.maximal_orbit_time
+                / SIMULATION_STEPS_PER_SECOND
+                / simulation.seconds_per_orbit;
+
+            simulation.start_time = 0.339;
+            simulation.burn_time = 1.48;
+            simulation.planing_mode = true;
         }
     };
 
@@ -92,11 +101,10 @@ fn line_color(sub: i16) -> Color {
 
 #[macroquad::main(conf)]
 async fn main() {
-    let mut simulation = set_masses(3);
+    let mut simulation = set_masses(0);
 
     let mut frame_delta_sum = 0.0;
 
-    let mut ttt = false;
     loop {
         if let Some(char) = get_char_pressed() {
             // println!("pressed char {:?}!", char);
@@ -128,27 +136,25 @@ async fn main() {
 
         simulation.draw();
 
-        //ttt
-        if true {
-            // simulate next position to be drawn in the next loop
-            let frame_delta_time: f64 = (get_frame_time() as f64).min(1.0);
-            frame_delta_sum += frame_delta_time;
+        // simulate next position to be drawn in the next loop
+        let frame_delta_time: f64 = (get_frame_time() as f64).min(1.0);
+        frame_delta_sum += frame_delta_time;
 
-            // Simulate nothing or one ore some simulation steps
-            key_down(&mut simulation, SIMULATION_STEP_TIME);
+        // Simulate nothing or one ore some simulation steps
+        key_down(&mut simulation, SIMULATION_STEP_TIME);
 
-            while frame_delta_sum > SIMULATION_STEP_TIME {
-                frame_delta_sum -= SIMULATION_STEP_TIME;
+        while frame_delta_sum > SIMULATION_STEP_TIME {
+            frame_delta_sum -= SIMULATION_STEP_TIME;
+
+            if !simulation.planing_mode {
                 simulation.simulate_step();
                 // set index to next step
                 simulation.positions_draw_and_write_index = simulation.next_position();
-                ttt = true;
             }
+            // Predict ship with new index
+            simulation.predict_ship_positions();
         }
 
-        if ttt {
-            //break;
-        }
         next_frame().await
     }
 }

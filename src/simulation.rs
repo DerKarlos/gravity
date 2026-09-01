@@ -20,8 +20,8 @@ pub struct Simulation {
     pub simulated_seconds: f64,
     pub simulated_seconds_per_step: f64,
     pub planing_mode: bool,
-    start_time: f64,
-    burn_time: f64,
+    pub start_time: f64,
+    pub burn_time: f64,
 }
 
 impl Simulation {
@@ -92,17 +92,32 @@ impl Simulation {
         self.ship_position = self.ship.position;
         self.ship_velocity = self.ship.velocity;
 
+        let save = self.simulated_seconds;
+
         let mut drag_index = self.positions_draw_and_write_index;
         for move_index in 1..PREDICT_COUNT {
             // lett all masses drag the ship
             for mass in &self.masses {
                 mass.drag_from_position(&mut self.ship, drag_index);
             }
+
+            // User secounds to simulated seconds
+            let start =
+                self.start_time * SIMULATION_STEPS_PER_SECOND * self.simulated_seconds_per_step;
+            let end = (self.start_time + self.burn_time)
+                * SIMULATION_STEPS_PER_SECOND
+                * self.simulated_seconds_per_step;
+            if self.simulated_seconds > start && self.simulated_seconds < end {
+                self.ship.ship_accelerate(A_BURN);
+            }
+
             self.ship
                 .move_seconds(self.simulated_seconds_per_step, move_index);
             drag_index += 1;
             drag_index %= PREDICT_COUNT;
+            self.simulated_seconds += self.simulated_seconds_per_step;
         }
+        self.simulated_seconds = save;
 
         self.ship.position = self.ship_position;
         self.ship.velocity = self.ship_velocity;
@@ -116,14 +131,24 @@ impl Simulation {
             mass.drag_from_position(&mut self.ship, self.positions_draw_and_write_index);
         }
 
+        self.simulated_seconds_per_step =
+            self.maximal_orbit_time / SIMULATION_STEPS_PER_SECOND / self.seconds_per_orbit;
+
+        // User secounds to simulated seconds
+        let start = self.start_time * SIMULATION_STEPS_PER_SECOND * self.simulated_seconds_per_step;
+        let end = (self.start_time + self.burn_time)
+            * SIMULATION_STEPS_PER_SECOND
+            * self.simulated_seconds_per_step;
+        if self.simulated_seconds > start && self.simulated_seconds < end {
+            self.ship.ship_accelerate(A_BURN);
+        }
+
         // Move ship with actual index
         self.ship.move_seconds(self.simulated_seconds_per_step, 0);
 
         // Move masses and increment index
         self.simulate_masses_step(self.simulated_seconds_per_step);
-
-        // Predict ship with new index
-        self.predict_ship_positions();
+        self.simulated_seconds += self.simulated_seconds_per_step;
     }
 
     pub fn ship_accelerate(&mut self, acceleration: f64) {
@@ -134,18 +159,20 @@ impl Simulation {
         self.planing_mode = !self.planing_mode;
         if self.planing_mode {
             //let x = 1e4;
-            let y = 1e3;
-            self.start_time = self.simulated_seconds + y * 2.;
-            self.burn_time = y;
+            // let y = 1e3;
+            // ??? self.start_time = self.simulated_seconds + y * 2.;
+            // ??? self.burn_time = y;
         }
     }
 
     pub fn planing_start_time(&mut self, set: f64) {
-        self.start_time += set * 0.5;
+        self.start_time += set * 0.001;
+        println!("start_time {}", self.start_time);
     }
 
     pub fn planing_burn_time(&mut self, set: f64) {
-        self.burn_time *= 1. + set * 0.0002;
+        self.burn_time *= 1. + set * 0.003;
+        println!("burn_time {}", self.burn_time);
     }
 
     pub fn simulate_masses_step(&mut self, simulated_seconds_per_step: f64) {
@@ -153,7 +180,6 @@ impl Simulation {
 
         // Each mass drags each other mass, except itselfes
         for i in 0..self.masses.len() {
-            // let drag_values = self.masses[i].get_drag_values();
             for j in (i + 1)..self.masses.len() {
                 let (left, right) = self.masses.split_at_mut(j);
 
@@ -162,10 +188,6 @@ impl Simulation {
                 a.drag(b);
                 b.drag(a);
             }
-
-            // all masses also drag the ship
-            //let mass = &self.masses[i];
-            //mass.drag(&mut self.ship)
         }
 
         // Move the masses at the head of the prediction
@@ -175,8 +197,6 @@ impl Simulation {
                 self.positions_draw_and_write_index,
             );
         }
-
-        self.simulated_seconds += self.simulated_seconds_per_step;
     }
 
     pub fn next_position(&self) -> usize {
@@ -184,8 +204,6 @@ impl Simulation {
     }
 
     pub fn scale(&self, position: &VecSpace) -> VecSpace {
-        // return f32 (x,y) ???
-
         let window_center: VecSpace =
             VecSpace::new(WINDOW_WIDTH as f64 / 2., WINDOW_HEIGHT as f64 / 2.);
         // Scale by view, divide by scene multiply by screen, add screen center
