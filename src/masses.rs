@@ -1,30 +1,20 @@
-use crate::simulation::*;
+use crate::canvas::*;
 use crate::vec_space::*;
 use macroquad::prelude::*;
 
+/// Collection and instances of masses, like sun moon and stars
+/// and mass related values, calculated of them
+
 ///// Parameter /////
 
-pub const WINDOW_WIDTH: f32 = 1000.;
-pub const WINDOW_HEIGHT: f32 = 680.; // ??? calculate frame
-
-// About like the framerate in Hz, but will be checked and repeated if needed
-pub const SIMULATION_STEPS_PER_SECOND: f64 = 50.;
-pub const SIMULATION_STEP_TIME: f64 = 1. / SIMULATION_STEPS_PER_SECOND;
-
 pub const PREDICT_COUNT: usize = 1000;
-pub const DEFAULT_SECONDS_PER_ORBIT: f64 = 10.; // default for earth!!! weg???
 
 pub const GRAVITY_CONSTANT_OF_EARTH: f64 = 6.67384e-11; // m^3/(kg*s^2)
-pub const A_BURN: f64 = 0.3;
+pub const _A_BURN: f64 = 0.3;
 
-pub const DRAW_FACT: f64 = 5.;
-pub const DRAW_MIN: i32 = 3;
-pub const DRAW_MAX: i32 = 200;
 //b const MAX_GRAVITY_DISTANCE: f64 = 1e38; // [AE]
 
-// Die kleinere Ausdehnung zählt als normaler darstellbar Bildpunktebereich
-// The smallest extend of the window counts as visible screen range
-pub const MAX_PIXEL_FROM_CENTER: i32 = WINDOW_HEIGHT as i32 / 2; // todo: do it dynamic!
+// ------------------- Globals   -------------------
 
 // ------------------- SI UNIT VALUE KONVERT OPTIONS  -------------------
 
@@ -55,7 +45,7 @@ pub struct MassData<'a> {
     color: Color,
     diameter: f64,
     mass: f64,
-    pub orbit_radius: f64,
+    orbit_radius: f64,
     excentricity: f64,
 }
 
@@ -104,20 +94,20 @@ impl<'a> MassData<'a> {
 // =================== MASS STRUCT/CLASS ===================
 
 #[derive(Debug, Clone)]
-pub struct Mass {
+struct Mass {
     _name: String, // why not &str ???
     mass: f64,
     diameter: f64,
-    pub orbit_time: f64,
+    orbit_time: f64,
     color: Color,
     acceleration: VecSpace,
-    pub velocity: VecSpace,
-    pub position: VecSpace,
-    pub positions: [VecSpace; PREDICT_COUNT],
+    velocity: VecSpace,
+    position: VecSpace,
+    positions: [VecSpace; PREDICT_COUNT],
 }
 
 impl Mass {
-    pub fn zero() -> Mass {
+    fn _zero() -> Mass {
         Mass {
             _name: String::from("ZERO"),
             mass: 0.,
@@ -131,7 +121,7 @@ impl Mass {
         }
     }
 
-    pub fn new(data: &MassData, orbits: Option<&mut Mass>) -> Mass {
+    fn new(data: &MassData, orbits: Option<&mut Mass>) -> Mass {
         // ignore radius if mass is not in orbit
         let position = if orbits.is_some() {
             VecSpace::new(data.orbit_radius, 0.0)
@@ -180,12 +170,12 @@ impl Mass {
             * (radius.powi(3) / (GRAVITY_CONSTANT_OF_EARTH * (mass.mass + other.mass))).sqrt()
     }
 
-    pub fn ship_accelerate(&mut self, acceleration: f64) {
-        let direction = self.velocity.normalized();
+    fn _ship_accelerate(&mut self, acceleration: f64) {
+        let direction = self.velocity._normalized();
         self.acceleration += direction * acceleration;
     }
 
-    pub fn drag(&self, other: &mut Mass) {
+    fn drag(&self, other: &mut Mass) {
         let mut distance_vector = self.position - other.position;
         let distance = distance_vector.length();
         distance_vector.normalize();
@@ -197,7 +187,7 @@ impl Mass {
         other.acceleration += acceleration_vector;
     }
 
-    pub fn drag_from_position(&self, other: &mut Mass, position_index: usize) {
+    fn _drag_from_position(&self, other: &mut Mass, position_index: usize) {
         let mut distance_vector = self.positions[position_index] - other.position;
         let distance = distance_vector.length();
         distance_vector.normalize();
@@ -209,45 +199,110 @@ impl Mass {
         other.acceleration += acceleration_vector;
     }
 
-    pub fn move_seconds(&mut self, simulated_seconds_per_step: f64, positions_index: usize) {
-        self.velocity += self.acceleration * simulated_seconds_per_step;
-        self.position += self.velocity * simulated_seconds_per_step;
+    fn move_seconds(&mut self, seconds: f64, positions_index: usize) {
+        self.velocity += self.acceleration * seconds;
+        self.position += self.velocity * seconds;
         self.positions[positions_index] = self.position;
         self.acceleration.set_zero();
     }
 
-    pub fn draw(&self, masses: &Simulation, positions_index: usize) {
-        // visible size not real and less proportional to avoid big differences
-        let mut size = (self.diameter.sqrt().sqrt() / DRAW_FACT * masses.z_view) as i32;
-        size = size.clamp(DRAW_MIN, DRAW_MAX);
-
-        let screen_pos = masses.scale(&self.positions[positions_index]);
-        draw_circle(
-            screen_pos.x() as f32,
-            screen_pos.y() as f32,
-            size as f32,
+    // do it by thread_local ?
+    fn draw(&self, canvas: &Canvas, positions_index: usize) {
+        canvas.draw_circle(
+            &self.positions[positions_index],
+            // visible size not real and less proportional to avoid big differences
+            self.diameter.sqrt().sqrt(),
             self.color,
         );
         //println!("x/y {}/{}", screen_pos.x() as f32, screen_pos.y() as f32);
 
-        let mut last_pos = screen_pos;
         for position in &self.positions {
-            let this_pos = masses.scale(position);
+            canvas.draw_rectangle(position, self.color);
+        }
+    }
+}
 
-            if false {
-                draw_line(
-                    last_pos.x() as f32,
-                    last_pos.y() as f32,
-                    this_pos.x() as f32,
-                    this_pos.y() as f32,
-                    0.1,
-                    self.color,
-                );
-            } else {
-                draw_rectangle(this_pos.x() as f32, this_pos.y() as f32, 1., 1., self.color);
+// =================== M A S S E S STRUCT/CLASS ===================
+
+// masses-values, calcualted while creating the masses
+#[derive(Debug, Clone)]
+pub struct Masses {
+    masses: Vec<Mass>,
+    // At this index: draw oldest position, write new position, increment after write
+    positions_index: usize,
+    // Default 10s or set by the actual scenario
+    maximal_orbit_time: f64,
+    // Calculated by the masses. Also needed and copied to the canvas.
+    maximal_orbit_radius: f64,
+}
+
+impl Masses {
+    pub fn new() -> Masses {
+        Masses {
+            masses: Vec::new(),
+            positions_index: 0,
+            maximal_orbit_time: 1.,
+            maximal_orbit_radius: 1.,
+        }
+    }
+
+    pub fn maximal_orbit_time(&self) -> f64 {
+        self.maximal_orbit_time
+    }
+
+    pub fn add_mass_at_place(&mut self, data: &MassData) -> usize {
+        let mass = Mass::new(data, None);
+        self.masses.push(mass);
+        self.masses.len() - 1
+    }
+
+    pub fn add_mass_in_orbit(&mut self, data: &MassData, orbits: usize) -> usize {
+        let orbits = &mut self.masses[orbits];
+        self.maximal_orbit_radius = data.orbit_radius.max(self.maximal_orbit_radius);
+        //println!("max orbit: {}", self.maximal_orbit);
+        let mass = Mass::new(data, Some(orbits));
+        self.maximal_orbit_time = self.maximal_orbit_time.max(mass.orbit_time);
+        self.masses.push(mass);
+        self.masses.len() - 1
+    }
+
+    pub fn set_radius(&self, canvas: &mut Canvas) {
+        canvas.set_maximal_orbit_radius(self.maximal_orbit_radius);
+    }
+
+    pub fn drag_and_move(&mut self, seconds: f64) {
+        // First drag, sedound move
+
+        // Each mass drags each other mass, except itselfes
+        for i in 0..self.masses.len() {
+            for j in (i + 1)..self.masses.len() {
+                let (left, right) = self.masses.split_at_mut(j);
+
+                let a = &mut left[i];
+                let b = &mut right[0];
+                a.drag(b);
+                b.drag(a);
             }
+        }
 
-            last_pos = this_pos;
+        // Move the masses at the head of the prediction
+        for mass in &mut self.masses {
+            mass.move_seconds(seconds, self.positions_index);
+        }
+    }
+
+    pub fn inc_position(&mut self) {
+        self.positions_index += 1;
+        self.positions_index %= PREDICT_COUNT;
+    }
+
+    pub fn get_position(&mut self) -> usize {
+        self.positions_index
+    }
+
+    pub fn draw(&self, canvas: &Canvas) {
+        for mass in &self.masses {
+            mass.draw(canvas, self.positions_index);
         }
     }
 }
