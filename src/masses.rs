@@ -1,4 +1,5 @@
 use crate::canvas::*;
+use crate::simulation::*;
 use crate::vec_space::*;
 use macroquad::prelude::*;
 
@@ -10,7 +11,6 @@ use macroquad::prelude::*;
 pub const PREDICT_COUNT: usize = 1000;
 
 pub const GRAVITY_CONSTANT_OF_EARTH: f64 = 6.67384e-11; // m^3/(kg*s^2)
-pub const _A_BURN: f64 = 0.3;
 
 //b const MAX_GRAVITY_DISTANCE: f64 = 1e38; // [AE]
 
@@ -84,7 +84,7 @@ impl<'a> MassData<'a> {
         MassData::ellipse(name, color, diameter, mass, 0.0, 0.0)
     }
 
-    pub fn multiplied_orbit_radius(&self, fakt: f64) -> Self {
+    pub fn mul_radius(&self, fakt: f64) -> Self {
         let mut ret = self.clone();
         ret.orbit_radius *= fakt;
         ret
@@ -93,21 +93,22 @@ impl<'a> MassData<'a> {
 
 // =================== MASS STRUCT/CLASS ===================
 
+// avoid pub???
 #[derive(Debug, Clone)]
-struct Mass {
+pub struct Mass {
     _name: String, // why not &str ???
     mass: f64,
     diameter: f64,
     orbit_time: f64,
     color: Color,
     acceleration: VecSpace,
-    velocity: VecSpace,
-    position: VecSpace,
+    pub velocity: VecSpace,
+    pub position: VecSpace,
     positions: [VecSpace; PREDICT_COUNT],
 }
 
 impl Mass {
-    fn _zero() -> Mass {
+    pub fn _zero() -> Mass {
         Mass {
             _name: String::from("ZERO"),
             mass: 0.,
@@ -121,7 +122,8 @@ impl Mass {
         }
     }
 
-    fn new(data: &MassData, orbits: Option<&mut Mass>) -> Mass {
+    // pub for new ship
+    pub fn new(data: &MassData, orbits: Option<&mut Mass>) -> Mass {
         // ignore radius if mass is not in orbit
         let position = if orbits.is_some() {
             VecSpace::new(data.orbit_radius, 0.0)
@@ -170,9 +172,13 @@ impl Mass {
             * (radius.powi(3) / (GRAVITY_CONSTANT_OF_EARTH * (mass.mass + other.mass))).sqrt()
     }
 
-    fn _ship_accelerate(&mut self, acceleration: f64) {
+    pub fn ship_accelerate_ahead(&mut self, acceleration: f64) {
         let direction = self.velocity._normalized();
         self.acceleration += direction * acceleration;
+    }
+
+    pub fn ship_accelerate_vec(&mut self, acceleration_vector: VecSpace) {
+        self.acceleration += acceleration_vector;
     }
 
     fn drag(&self, other: &mut Mass) {
@@ -187,8 +193,8 @@ impl Mass {
         other.acceleration += acceleration_vector;
     }
 
-    fn _drag_from_position(&self, other: &mut Mass, position_index: usize) {
-        let mut distance_vector = self.positions[position_index] - other.position;
+    fn drag_position(&self, position: VecSpace, position_index: usize) -> VecSpace {
+        let mut distance_vector = self.positions[position_index] - position;
         let distance = distance_vector.length();
         distance_vector.normalize();
 
@@ -196,10 +202,10 @@ impl Mass {
         let acceleration = self.mass / (distance * distance) * GRAVITY_CONSTANT_OF_EARTH;
         let acceleration_vector = distance_vector * acceleration;
 
-        other.acceleration += acceleration_vector;
+        acceleration_vector
     }
 
-    fn move_seconds(&mut self, seconds: f64, positions_index: usize) {
+    pub fn move_seconds(&mut self, seconds: f64, positions_index: usize) {
         self.velocity += self.acceleration * seconds;
         self.position += self.velocity * seconds;
         self.positions[positions_index] = self.position;
@@ -207,7 +213,7 @@ impl Mass {
     }
 
     // do it by thread_local ?
-    fn draw(&self, canvas: &Canvas, positions_index: usize) {
+    pub fn draw(&self, canvas: &Canvas, positions_index: usize) {
         canvas.draw_circle(
             &self.positions[positions_index],
             // visible size not real and less proportional to avoid big differences
@@ -246,17 +252,21 @@ impl Masses {
         }
     }
 
+    pub fn positions_index(&self) -> usize {
+        self.positions_index
+    }
+
     pub fn maximal_orbit_time(&self) -> f64 {
         self.maximal_orbit_time
     }
 
-    pub fn add_mass_at_place(&mut self, data: &MassData) -> usize {
+    pub fn add_at_place(&mut self, data: &MassData) -> usize {
         let mass = Mass::new(data, None);
         self.masses.push(mass);
         self.masses.len() - 1
     }
 
-    pub fn add_mass_in_orbit(&mut self, data: &MassData, orbits: usize) -> usize {
+    pub fn add_in_orbit(&mut self, data: &MassData, orbits: usize) -> usize {
         let orbits = &mut self.masses[orbits];
         self.maximal_orbit_radius = data.orbit_radius.max(self.maximal_orbit_radius);
         //println!("max orbit: {}", self.maximal_orbit);
@@ -268,6 +278,18 @@ impl Masses {
 
     pub fn set_radius(&self, canvas: &mut Canvas) {
         canvas.set_maximal_orbit_radius(self.maximal_orbit_radius);
+    }
+
+    pub fn get_from_index(&mut self, index: usize) -> &mut Mass {
+        &mut self.masses[index]
+    }
+
+    pub fn drag_at_position(&self, position: VecSpace, index: usize) -> VecSpace {
+        let mut acceleration = VecSpace::ZERO;
+        for mass in &self.masses {
+            acceleration += mass.drag_position(position, index)
+        }
+        acceleration
     }
 
     pub fn drag_and_move(&mut self, seconds: f64) {
@@ -291,12 +313,24 @@ impl Masses {
         }
     }
 
+    // initially simulate all the future positinos
+    pub fn predict_positions(&mut self, simulation: &mut Simulation) {
+        // All masses are there, calculate the simulation time by the maximal orbit time
+        simulation.simulated_seconds_per_step =
+            self.maximal_orbit_time() / SIMULATION_STEPS_PER_SECOND / simulation.seconds_per_orbit;
+
+        for _ in 1..PREDICT_COUNT {
+            self.drag_and_move(simulation.simulated_seconds_per_step);
+            self.inc_position();
+        }
+    }
+
     pub fn inc_position(&mut self) {
         self.positions_index += 1;
         self.positions_index %= PREDICT_COUNT;
     }
 
-    pub fn get_position(&mut self) -> usize {
+    pub fn get_position(&self) -> usize {
         self.positions_index
     }
 

@@ -86,7 +86,7 @@ impl VecSpace {
         }
     }
 
-    pub fn normalized(&mut self) -> Self {
+    pub fn _normalized(&mut self) -> Self {
         let len = self.length();
         // len >= epsilon
         if len == 0.0 {
