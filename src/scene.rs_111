@@ -1,0 +1,55 @@
+use crate::canvas::*;
+use crate::masses::*;
+use crate::simulation::*;
+
+use macroquad::prelude::*;
+
+/// ----------------------------------------------
+
+pub struct Scene<'a> {
+    sun_data: &'a MassData<'a>,
+    _sun2_data: &'a MassData<'a>,
+    earth_data: &'a MassData<'a>,
+    _luna_data: &'a MassData<'a>,
+    _jupiter_d: &'a MassData<'a>,
+    _comet_data: &'a MassData<'a>,
+    _ship_data: &'a MassData<'a>,
+}
+
+impl<'a> Scene<'a> {
+    pub fn new(
+        scene_key: i16,
+        simulation: &mut Simulation,
+        masses: &mut Masses,
+        canvas: &mut Canvas,
+    ) {
+        // Scene<'a>
+        let scene = Scene {
+            // some masses
+            sun_data: &MassData::fixstar("sun", YELLOW, km(1.3914e6), mass_sol(1.)),
+            _sun2_data: &MassData::orbiter("sun2", GOLD, km(1.3914e6), mass_sol(1.), au(0.5)),
+            earth_data: &MassData::orbiter("earth", BLUE, km(12756.32), mass_earth(1.), au(1.)),
+
+            // more but 0.005 AE radius makes the orbit insable.
+            _luna_data: &MassData::orbiter("luna", RED, km(3476.), kg(7.349e22), km(370171.)),
+            _jupiter_d: &MassData::orbiter("jupiter", GREEN, km(142984.0), kg(1.899e27), au(25e3)),
+            _comet_data: &MassData::ellipse("comet", WHITE, km(500.0), kg(1e6), au(1.3), 0.4),
+            _ship_data: &MassData::orbiter("ship", WHITE, 10.0, 0.0, km(80000.)), // the real 300km are not visible
+        };
+
+        match scene_key {
+            _ => {
+                scene.sun_eart1(simulation, masses);
+            }
+        }
+
+        // All masses are there, calculate the simulation time by the maximal orbit time
+        simulation.set_orbit_time(masses);
+        masses.set_radius(canvas);
+    }
+    pub fn sun_eart1(&self, simulation: &mut Simulation, masses: &mut Masses) {
+        simulation.set_text("Sun, Earth");
+        let sun = masses.add_at_place(self.sun_data);
+        masses.add_in_orbit(self.earth_data, sun);
+    }
+}
