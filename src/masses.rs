@@ -236,7 +236,7 @@ pub struct Masses {
     masses: Vec<Mass>,
     // At this index: draw oldest position, write new position, increment after write
     positions_index: usize,
-    // Default 10s or set by the actual scenario
+    // Default 10s or set by the actual scene
     maximal_orbit_time: f64,
     // Calculated by the masses. Also needed and copied to the canvas.
     maximal_orbit_radius: f64,
@@ -320,9 +320,10 @@ impl Masses {
             self.maximal_orbit_time() / SIMULATION_STEPS_PER_SECOND / simulation.seconds_per_orbit;
 
         for _ in 1..PREDICT_COUNT {
-            self.drag_and_move(simulation.simulated_seconds_per_step);
             self.inc_position();
+            self.drag_and_move(simulation.simulated_seconds_per_step);
         }
+        self.inc_position(); // wrap to 0
     }
 
     pub fn inc_position(&mut self) {

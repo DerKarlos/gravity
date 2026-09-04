@@ -2,7 +2,7 @@ use crate::canvas::*;
 use crate::masses::*;
 use macroquad::prelude::*;
 
-/// Simmulation of one scenario: create and move masses and the ship
+/// Simmulation of one scene: create and move masses and the ship
 /// and values, not given by the masses.
 
 // About like the framerate in Hz, but will be checked and repeated if needed
@@ -13,6 +13,7 @@ pub const SIMULATION_STEP_TIME: f64 = 1. / SIMULATION_STEPS_PER_SECOND;
 
 pub struct Simulation {
     // todo: no pub!!!!
+    pub scene: i16,
     text: String,
     pub seconds_per_orbit: f64,
     // simulated time, not the UI time!
@@ -22,10 +23,11 @@ pub struct Simulation {
 }
 
 impl Simulation {
-    pub fn new() -> Simulation {
+    pub fn new(scene: i16) -> Simulation {
         Simulation {
+            scene,
             text: String::new(),
-            seconds_per_orbit: 10., // default, may be changed by the scenario
+            seconds_per_orbit: 10., // default, may be changed by the scene
             simulated_seconds: 0.0,
             simulated_seconds_per_step: 0.0,
             run_mode: true,
@@ -54,6 +56,7 @@ impl Simulation {
     pub fn simulate_one_step(&mut self, masses: &mut Masses) {
         masses.drag_and_move(self.simulated_seconds_per_step);
         masses.inc_position();
+        self.simulated_seconds += self.simulated_seconds_per_step;
     }
 
     //pub fn ship_accelerate(&mut self, acceleration: f64) {

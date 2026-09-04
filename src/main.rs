@@ -20,13 +20,12 @@ fn conf() -> Conf {
     }
 }
 
-fn set_masses(
-    scenario: i16,
-    simulation: &mut Simulation,
-    masses: &mut Masses,
-    ship: &mut Ship,
-    canvas: &mut Canvas,
-) {
+fn set_scene(scene: i16) -> (Simulation, Masses, Ship, Canvas) {
+    let mut simulation = Simulation::new(0);
+    let mut masses = Masses::new();
+    let mut ship = Ship::default();
+    let mut canvas = Canvas::new(&conf());
+
     // some masses
     let sun_data = MassData::fixstar("sun", YELLOW, km(1.3914e6), mass_sol(1.));
     let sun2_data = MassData::orbiter("sun2", GOLD, km(1.3914e6), mass_sol(1.), au(0.5));
@@ -38,7 +37,7 @@ fn set_masses(
     let comet_data = MassData::ellipse("comet", WHITE, km(500.0), kg(1e6), au(1.3), 0.4);
     let ship_data = MassData::orbiter("ship", WHITE, 10.0, 0.0, km(80000.)); // the real 300km are not visible
 
-    match scenario {
+    match scene {
         1 => {
             simulation.set_text("Sun, Earth");
             let sun = masses.add_at_place(&sun_data);
@@ -71,30 +70,27 @@ fn set_masses(
             simulation.set_text("Test");
             let earth = masses.add_at_place(&earth_data);
             masses.add_in_orbit(&luna_data.mul_radius(0.1), earth);
-            ship.set_in_orbit(masses, &ship_data.mul_radius(0.1), earth);
+            ship.set_in_orbit(&mut masses, &ship_data.mul_radius(0.1), earth);
             ship.set_burn(0.289, 1.1781022706580768); // Luna-Orbit
-            ship.set_burn(0.339, 1.48); // Not an 8 curse yet
+            //ship.set_burn(0.339, 1.48); // Not an 8 curse yet
             simulation.run_mode = false;
         }
     };
 
     // All masses are there, calculate the simulation time by the maximal orbit time
     simulation.set_orbit_time(&masses);
-    masses.set_radius(canvas);
+    masses.set_radius(&mut canvas);
 
     // initially simulate all the future positinos
-    masses.predict_positions(simulation);
-    ship.predict_positions(simulation, masses);
+    masses.predict_positions(&mut simulation);
+    ship.predict_positions(&mut simulation, &mut masses);
+
+    (simulation, masses, ship, canvas)
 }
 
 #[macroquad::main(conf)]
 async fn main() {
-    let mut simulation = Simulation::new();
-    let mut masses = Masses::new();
-    let mut ship = Ship::default();
-    let mut canvas = Canvas::new(&conf());
-
-    set_masses(0, &mut simulation, &mut masses, &mut ship, &mut canvas);
+    let (mut simulation, mut masses, mut ship, mut canvas) = set_scene(0);
 
     let mut frame_delta_sum = 0.0;
 
@@ -113,34 +109,34 @@ async fn main() {
                 }
 
                 'r' => {
-                    simulation = Simulation::new();
-                    set_masses(
-                        0, //simulation.case,
-                        &mut simulation,
-                        &mut masses,
-                        &mut ship,
-                        &mut canvas,
-                    )
+                    (simulation, masses, ship, canvas) = set_scene(simulation.scene);
+
+                    //simulation = Simulation::new(simulation.scene);
+                    //masses = Masses::new();
+                    //ship = Ship::default();
+                    //canvas = Canvas::new(&conf());
+                    //set_masses(
+                    //    0, //simulation.case,
+                    //    &mut simulation,
+                    //    &mut masses,
+                    //    &mut ship,
+                    //    &mut canvas,
+                    //)
                 }
                 '0' => {
-                    simulation = Simulation::new();
-                    set_masses(0, &mut simulation, &mut masses, &mut ship, &mut canvas)
+                    (simulation, masses, ship, canvas) = set_scene(0);
                 }
                 '1' => {
-                    simulation = Simulation::new();
-                    set_masses(1, &mut simulation, &mut masses, &mut ship, &mut canvas)
+                    (simulation, masses, ship, canvas) = set_scene(1);
                 }
                 '2' => {
-                    simulation = Simulation::new();
-                    set_masses(2, &mut simulation, &mut masses, &mut ship, &mut canvas)
+                    (simulation, masses, ship, canvas) = set_scene(2);
                 }
                 '3' => {
-                    simulation = Simulation::new();
-                    set_masses(3, &mut simulation, &mut masses, &mut ship, &mut canvas)
+                    (simulation, masses, ship, canvas) = set_scene(3);
                 }
                 '4' => {
-                    simulation = Simulation::new();
-                    set_masses(4, &mut simulation, &mut masses, &mut ship, &mut canvas)
+                    (simulation, masses, ship, canvas) = set_scene(4);
                 }
 
                 _ => (), // println!("Char not used: {:?}!", char),
@@ -165,13 +161,15 @@ async fn main() {
             frame_delta_sum -= SIMULATION_STEP_TIME;
 
             if simulation.run_mode {
-                // also sets index to next step
+                ship.move_0(&simulation, &masses);
+                // also sets index to next step!
                 simulation.simulate_one_step(&mut masses);
+
+                //ship.
             }
 
             // Predict ship with new masses index
             ship.predict_positions(&simulation, &masses);
-            //simulation.predict_ship_positions();
         }
 
         next_frame().await
