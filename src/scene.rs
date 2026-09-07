@@ -17,7 +17,14 @@ pub fn set_scene(scene: i16) -> (Simulation, Masses, Ship, Canvas) {
     let sun_dat2 = MassData::orbiter("sun2", GOLD, km(1.3914e6), mass_sol(1.), au(0.5));
     let earth_data = MassData::orbiter("earth", BLUE, km(12756.32), mass_earth(1.), au(1.));
     let big_dat1 = MassData::orbiter("earth", BLUE, km(12756.32), mass_sol(0.01), au(0.1));
-    let big_dat2 = MassData::ellipse("earth", BLUE, km(12756.32), mass_sol(0.01), au(0.15), 0.3);
+    let big_dat2 = MassData::ellipse(
+        "earth",
+        SKYBLUE,
+        km(12756.32),
+        mass_sol(0.01),
+        au(0.15),
+        0.3,
+    );
 
     // more but 0.005 AE radius makes the orbit insable.
     let luna_data = MassData::orbiter("luna", RED, km(3476.), kg(7.349e22), km(370171.));

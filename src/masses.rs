@@ -215,7 +215,7 @@ impl Mass {
     // do it by thread_local ?
     pub fn draw(&self, canvas: &Canvas, positions_index: usize) {
         canvas.draw_circle(
-            &self.positions[positions_index],
+            self.positions[positions_index],
             // visible size not real and less proportional to avoid big differences
             self.diameter.sqrt().sqrt(),
             self.color,
@@ -223,7 +223,7 @@ impl Mass {
         //println!("x/y {}/{}", screen_pos.x() as f32, screen_pos.y() as f32);
 
         for position in &self.positions {
-            canvas.draw_rectangle(position, self.color);
+            canvas.draw_rectangle(*position, self.color);
         }
     }
 }

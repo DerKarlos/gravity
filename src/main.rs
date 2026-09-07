@@ -122,10 +122,28 @@ fn key_down(ship: &mut Ship, canvas: &mut Canvas, _simulation_step_time: f64) {
         ship.planing_burn_time(-1.);
     }
 
-    if is_key_down(KeyCode::U) {
+    if is_key_down(KeyCode::W) {
+        canvas.add_view(0., 1.);
+    }
+    if is_key_down(KeyCode::S) {
+        canvas.add_view(0., -1.);
+    }
+
+    if is_key_down(KeyCode::A) {
+        canvas.add_view(1., 0.);
+    }
+    if is_key_down(KeyCode::D) {
+        canvas.add_view(-1., 0.);
+    }
+
+    if is_key_down(KeyCode::E) {
         canvas.mul_z_view(1.001);
     }
-    if is_key_down(KeyCode::J) {
+    if is_key_down(KeyCode::Q) {
         canvas.mul_z_view(0.999);
+    }
+
+    if is_key_down(KeyCode::KpAdd) {
+        println!("KpAdd");
     }
 }

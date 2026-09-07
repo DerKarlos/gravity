@@ -4,6 +4,7 @@ use macroquad::prelude::*;
 pub struct Canvas {
     window_with: i32,
     window_height: i32,
+    xy_view: VecSpace,
     z_view: f64,
     z_grid: f64,
     // copy from masses
@@ -16,8 +17,9 @@ impl Canvas {
         Canvas {
             window_with: conf.window_width,
             window_height: conf.window_height,
-            z_view: 0.9,
-            z_grid: 0.9,
+            xy_view: VecSpace::ZERO,
+            z_view: 0.95,
+            z_grid: 0.95,
             maximal_orbit_radius: 1.,
             // Die kleinere Fenster-Ausdehnung zählt als normaler darstellbar Bildpunktebereich
             // The smallest extend of the window counts as visible screen range
@@ -25,29 +27,46 @@ impl Canvas {
         }
     }
 
-    pub fn mul_z_view(&mut self, fakt: f64) {
-        self.z_view *= fakt;
-    }
-
     pub fn set_maximal_orbit_radius(&mut self, val: f64) {
         self.maximal_orbit_radius = val;
+    }
+
+    pub fn add_view(&mut self, x: f64, y: f64) {
+        self.xy_view += VecSpace::new(x, y);
+    }
+
+    pub fn mul_z_view(&mut self, fakt: f64) {
+        self.z_view *= fakt;
     }
 
     pub fn _set_z_view(&mut self, val: f64) {
         self.z_view = val;
     }
 
-    fn scale(&self, position: &VecSpace) -> (f32, f32) {
+    /// calculate the metric simulated values from the pixel position
+    /// by screen-center maximal orbit and screen and z-zoom faktor
+    fn _from_pixel(&self, x: i32, y: i32) -> VecSpace {
+        let scale = self.maximal_orbit_radius / self.z_view / self.max_pixel_from_center as f64;
+        // window_center in self? Dymamic by resize todo
         let window_center: VecSpace =
             VecSpace::new(self.window_with as f64 / 2., self.window_height as f64 / 2.);
+
+        VecSpace::new(x as f64, y as f64) - window_center * scale //abs??
+    }
+
+    /// calculate the pixel position from the metric simulated values
+    /// by maximal orbit and screen and z-zoom faktor and screen center
+    fn to_pixel(&self, position: VecSpace) -> (f32, f32) {
+        let window_center: VecSpace =
+            VecSpace::new(self.window_with as f64 / 2., self.window_height as f64 / 2.);
+        let scale = self.z_view / self.maximal_orbit_radius * self.max_pixel_from_center as f64;
+
         // Scale by view, divide by scene multiply by screen, add screen center
-        let screen_pos = *position
-            * (self.z_view / self.maximal_orbit_radius * self.max_pixel_from_center as f64)
-            + window_center;
+        let screen_pos = position * scale + self.xy_view + window_center;
         (screen_pos.x() as f32, screen_pos.y() as f32)
     }
 
-    pub fn draw_circle(&self, position: &VecSpace, diameter: f64, color: Color) {
+    pub fn draw_circle(&self, position: VecSpace, diameter: f64, color: Color) {
         pub const DRAW_FACT: f64 = 5.;
         pub const DRAW_MIN: f64 = 3.;
         pub const DRAW_MAX: f64 = 200.;
@@ -55,13 +74,13 @@ impl Canvas {
         let size = diameter / DRAW_FACT * self.z_view;
         let size = size.clamp(DRAW_MIN, DRAW_MAX) as f32;
 
-        let (x, y) = self.scale(position);
+        let (x, y) = self.to_pixel(position);
 
         draw_circle(x, y, size, color);
     }
 
-    pub fn draw_rectangle(&self, position: &VecSpace, color: Color) {
-        let (x, y) = self.scale(position);
+    pub fn draw_rectangle(&self, position: VecSpace, color: Color) {
+        let (x, y) = self.to_pixel(position);
         draw_rectangle(x, y, 1., 1., color);
     }
 
@@ -75,6 +94,7 @@ impl Canvas {
         );
     }
 
+    // draw only contains "draw_grid"
     pub fn draw(&mut self) {
         if self.z_view > self.z_grid {
             self.z_grid *= 2.0;
@@ -85,14 +105,17 @@ impl Canvas {
             // println!("z_draw: {}", &masses.z_grid);
         }
 
-        let max = self.maximal_orbit_radius * 2. / self.z_grid;
-        let step = max / 50.;
+        let max = 4. * self.maximal_orbit_radius / self.z_grid;
+        //self.from_pixel(self.window_with, self.window_height).x();
+        //println!("{}", max);
+        let step = max / 100.;
 
+        // vertial lines x spread
         let mut x = -max;
         let mut sub = 0;
         loop {
-            let (beg_x, beg_y) = self.scale(&VecSpace::new(x, max));
-            let (end_x, end_y) = self.scale(&VecSpace::new(x, -max));
+            let (beg_x, beg_y) = self.to_pixel(VecSpace::new(x, max));
+            let (end_x, end_y) = self.to_pixel(VecSpace::new(x, -max));
             draw_line(beg_x, beg_y, end_x, end_y, 1., line_color(sub));
 
             sub += 1;
@@ -102,16 +125,17 @@ impl Canvas {
             }
         }
 
-        let mut x = -max;
+        // horizontal lines, y spread
+        let mut y = -max;
         let mut sub = 0;
         loop {
-            let (beg_x, beg_y) = self.scale(&VecSpace::new(max, x));
-            let (end_x, end_y) = self.scale(&VecSpace::new(-max, x));
+            let (beg_x, beg_y) = self.to_pixel(VecSpace::new(max, y));
+            let (end_x, end_y) = self.to_pixel(VecSpace::new(-max, y));
             draw_line(beg_x, beg_y, end_x, end_y, 1., line_color(sub));
 
             sub += 1;
-            x += step;
-            if x > max {
+            y += step;
+            if y > max {
                 break;
             }
         }
