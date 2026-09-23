@@ -11,6 +11,9 @@ pub struct Ship {
     pub burn_time: f64,
     position: VecSpace,
     velocity: VecSpace,
+    rotation_start: f64,
+    rotation_a: usize,
+    rotation_b: usize,
 }
 
 impl Ship {
@@ -21,7 +24,16 @@ impl Ship {
             burn_time: 0.0,
             position: VecSpace::ZERO,
             velocity: VecSpace::ZERO,
+            rotation_start: 0.,
+            rotation_a: 0,
+            rotation_b: 0,
         }
+    }
+
+    pub fn set_rotation(&mut self, start: f64, a: usize, b: usize) {
+        self.rotation_start = start;
+        self.rotation_a = a;
+        self.rotation_b = b;
     }
 
     pub fn set_burn(&mut self, start: f64, time: f64) {
@@ -35,7 +47,7 @@ impl Ship {
         self.mass = mass;
     }
 
-    pub fn move_0(&mut self, simulation: &Simulation, masses: &Masses) {
+    pub fn move_one_step(&mut self, simulation: &Simulation, masses: &Masses) {
         let acceleration_vector =
             masses.drag_at_position(self.mass.position, masses.positions_index());
         self.mass.ship_accelerate_vec(acceleration_vector);
@@ -58,6 +70,8 @@ impl Ship {
         //    masses.positions_index(),
         //);
 
+        let rotate = self.rotation_a == self.rotation_b;
+
         self.position = self.mass.position;
         self.velocity = self.mass.velocity;
 
@@ -77,6 +91,13 @@ impl Ship {
 
             self.mass
                 .move_seconds(simulation.simulated_seconds_per_step, move_index);
+
+            if rotate {
+                //let position_a = masses.get_position_from_index(self.rotation_a, move_index);
+                //let position_b = masses.get_position_from_index(self.rotation_b, move_index);
+                //let angle = position_a.angle_to(position_b);
+            }
+
             drag_index += 1;
             drag_index %= PREDICT_COUNT;
             seconds += simulation.simulated_seconds_per_step;
@@ -90,9 +111,13 @@ impl Ship {
         self.mass.draw(canvas, 0);
     }
 
-    pub fn planing_start_time(&mut self, set: f64) {
+    pub fn _planing_start_time(&mut self, set: f64) {
         self.burn_start += set * 0.001;
         println!("start_time {}", self.burn_start);
+    }
+
+    pub fn set_start_time(&mut self, set: f64) {
+        self.burn_start = set;
     }
 
     pub fn planing_burn_time(&mut self, set: f64) {

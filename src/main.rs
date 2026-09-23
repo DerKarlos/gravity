@@ -1,14 +1,14 @@
 mod canvas;
+mod controls;
 mod masses;
 mod scene;
 mod ship;
 mod simulation;
 mod vec_space;
 
-use canvas::*;
+use controls::*;
 use macroquad::prelude::*;
 use scene::*;
-use ship::*;
 use simulation::*;
 
 pub fn conf() -> Conf {
@@ -26,6 +26,8 @@ async fn main() {
     // let (mut simulation, mut masses, mut ship, mut canvas) = set_scene(0);
 
     let (mut simulation, mut masses, mut ship, mut canvas) = set_scene(5);
+
+    let mut controls = Controls::new();
 
     let mut frame_delta_sum = 0.0;
 
@@ -81,69 +83,23 @@ async fn main() {
         frame_delta_sum += frame_delta_time;
 
         // Simulate nothing or one ore some simulation steps
-        key_down(&mut ship, &mut canvas, SIMULATION_STEP_TIME);
+        controls.key_down(&mut ship, &mut canvas, frame_delta_time);
 
         while frame_delta_sum > SIMULATION_STEP_TIME {
             frame_delta_sum -= SIMULATION_STEP_TIME;
 
             if simulation.run_mode {
-                ship.move_0(&simulation, &masses);
+                ship.move_one_step(&simulation, &masses);
                 // also sets index to next step!
                 simulation.simulate_one_step(&mut masses);
 
                 //ship.
             }
 
-            // Predict ship with new masses index
+            // Predict ship with new masses index or new burn values etc.
             ship.predict_positions(&simulation, &masses);
         }
 
         next_frame().await
-    }
-}
-
-fn key_down(ship: &mut Ship, canvas: &mut Canvas, _simulation_step_time: f64) {
-    if is_key_down(KeyCode::Space) {
-        //masses.ship_accelerate(simulation_step_time);
-    }
-    if is_key_down(KeyCode::Backspace) {
-        //masses.ship_accelerate(-simulation_step_time)
-    }
-    if is_key_down(KeyCode::Right) {
-        ship.planing_start_time(1.);
-    }
-    if is_key_down(KeyCode::Left) {
-        ship.planing_start_time(-1.);
-    }
-    if is_key_down(KeyCode::Up) {
-        ship.planing_burn_time(1.);
-    }
-    if is_key_down(KeyCode::Down) {
-        ship.planing_burn_time(-1.);
-    }
-
-    if is_key_down(KeyCode::W) {
-        canvas.add_view(0., 1.);
-    }
-    if is_key_down(KeyCode::S) {
-        canvas.add_view(0., -1.);
-    }
-
-    if is_key_down(KeyCode::A) {
-        canvas.add_view(1., 0.);
-    }
-    if is_key_down(KeyCode::D) {
-        canvas.add_view(-1., 0.);
-    }
-
-    if is_key_down(KeyCode::E) {
-        canvas.mul_z_view(1.001);
-    }
-    if is_key_down(KeyCode::Q) {
-        canvas.mul_z_view(0.999);
-    }
-
-    if is_key_down(KeyCode::KpAdd) {
-        println!("KpAdd");
     }
 }

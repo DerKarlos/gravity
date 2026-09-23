@@ -1,7 +1,7 @@
 use std::ops;
 
 // ------------------- VECX STRUCT/CLASS -------------------
-// Where was this derived from?
+// Where was this derived from? https://docs.rs/vec2/latest/vec2/ ???
 
 #[derive(Clone, Copy, Debug)]
 pub struct VecSpace {
@@ -103,4 +103,13 @@ impl VecSpace {
         self.x = 0.0;
         self.y = 0.0;
     }
+
+    //    pub fn transform_angle(&mut self)
+    //        let c = a.cos();
+    //        let s = a.sin();
+    //
+    //        let out_x = x * c - y * &s;
+    //        let out_y = x * s + y * &c;
+    //
+    //    }
 }

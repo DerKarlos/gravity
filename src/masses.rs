@@ -284,6 +284,10 @@ impl Masses {
         &mut self.masses[index]
     }
 
+    pub fn _get_position_from_index(&self, mass_index: usize, positon_index: usize) -> VecSpace {
+        self.masses[mass_index].positions[positon_index]
+    }
+
     pub fn drag_at_position(&self, position: VecSpace, index: usize) -> VecSpace {
         let mut acceleration = VecSpace::ZERO;
         for mass in &self.masses {

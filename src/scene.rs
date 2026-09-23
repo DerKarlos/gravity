@@ -70,13 +70,14 @@ pub fn set_scene(scene: i16) -> (Simulation, Masses, Ship, Canvas) {
         }
 
         _ => {
-            simulation.set_text("Test");
+            simulation.set_text("Test:moon 8 loop");
             let earth = masses.add_at_place(&earth_data);
-            masses.add_in_orbit(&luna_data.mul_radius(0.1), earth);
+            let luna = masses.add_in_orbit(&luna_data.mul_radius(0.1), earth);
             ship.set_in_orbit(&mut masses, &ship_data.mul_radius(0.1), earth);
             ship.set_burn(0.289, 1.1781022706580768); // Luna-Orbit
             ship.set_burn(0.339, 1.48); // Not an 8 curse yet
             simulation.run_mode = false;
+            ship.set_rotation(0., earth, luna);
         }
     };
 

@@ -35,11 +35,11 @@ impl Canvas {
         self.xy_view += VecSpace::new(x, y);
     }
 
-    pub fn mul_z_view(&mut self, fakt: f64) {
+    pub fn _mul_z_view(&mut self, fakt: f64) {
         self.z_view *= fakt;
     }
 
-    pub fn _set_z_view(&mut self, val: f64) {
+    pub fn set_z_view(&mut self, val: f64) {
         self.z_view = val;
     }
 
