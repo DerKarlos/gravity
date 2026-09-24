@@ -214,17 +214,18 @@ impl Mass {
 
     // do it by thread_local ?
     pub fn draw(&self, canvas: &Canvas, positions_index: usize) {
+        let index = positions_index + canvas.predict_show % PREDICT_COUNT;
         canvas.draw_circle(
-            self.positions[positions_index],
+            self.positions[index],
             // visible size not real and less proportional to avoid big differences
             self.diameter.sqrt().sqrt(),
             self.color,
         );
         //println!("x/y {}/{}", screen_pos.x() as f32, screen_pos.y() as f32);
-
-        for position in &self.positions {
-            canvas.draw_rectangle(*position, self.color);
-        }
+        canvas.draw_rectangles(self.positions, self.color);
+        //for position in &self.positions {
+        //    canvas.draw_rectangle(*position, self.color);
+        //}
     }
 }
 
@@ -320,12 +321,13 @@ impl Masses {
     // initially simulate all the future positinos
     pub fn predict_positions(&mut self, simulation: &mut Simulation) {
         // All masses are there, calculate the simulation time by the maximal orbit time
-        simulation.simulated_seconds_per_step =
-            self.maximal_orbit_time() / SIMULATION_STEPS_PER_SECOND / simulation.seconds_per_orbit;
+        simulation.world_seconds_per_step = self.maximal_orbit_time()
+            / SIMULATION_STEPS_PER_APP_SECOND
+            / simulation.app_seconds_per_orbit;
 
         for _ in 1..PREDICT_COUNT {
             self.inc_position();
-            self.drag_and_move(simulation.simulated_seconds_per_step);
+            self.drag_and_move(simulation.world_seconds_per_step);
         }
         self.inc_position(); // wrap to 0
     }

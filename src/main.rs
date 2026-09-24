@@ -25,9 +25,9 @@ pub fn conf() -> Conf {
 async fn main() {
     // let (mut simulation, mut masses, mut ship, mut canvas) = set_scene(0);
 
-    let (mut simulation, mut masses, mut ship, mut canvas) = set_scene(5);
+    let (mut simulation, mut masses, mut ship, mut canvas) = set_scene(0);
 
-    let mut controls = Controls::new();
+    let mut controls = Controls::new(&ship);
 
     let mut frame_delta_sum = 0.0;
 
@@ -38,10 +38,10 @@ async fn main() {
                 '\u{1b}' => break, // KeyCode::Escape
                 '\r' => {
                     // KeyCode::Enter
-                    simulation.toggle_planing_mode();
+                    simulation.toggle_run_mode();
                     println!(
                         "planing_mode: {} {}",
-                        simulation.run_mode, simulation.simulated_seconds
+                        simulation.run_mode, simulation.simulated_world_seconds
                     );
                 }
 

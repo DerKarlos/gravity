@@ -1,72 +1,9 @@
 use crate::canvas::*;
 use crate::ship::*;
+
 use macroquad::prelude::*;
 
 const KEY_BREAK_TIME: f64 = 0.33;
-
-struct UpDown {
-    last_time: f64,
-    actual: f64,
-    step_min: f64,
-    step: f64,
-    last_was_up: bool,
-}
-
-impl UpDown {
-    pub fn new(value: f64, step: f64, step_min: f64) -> UpDown {
-        UpDown {
-            last_time: 0.,
-            actual: value,
-            step_min,
-            step: step,
-            last_was_up: true,
-        }
-    }
-
-    fn step_down(&mut self) {
-        if self.step > self.step_min {
-            self.step /= 2.;
-            println!("step {}", self.step);
-        }
-    }
-
-    pub fn up(&mut self, time: f64, delta_time: f64) -> f64 {
-        if time - self.last_time > KEY_BREAK_TIME {
-            self.step_down();
-        }
-        self.last_time = time;
-        if self.last_was_up {
-            // self.step *= 1.01;
-            // 1 sec to double the value! If dt is 1 it doubles beause 1+1*1=2. If dt is smal, less happends
-            self.step *= 1. + 1. * delta_time;
-        } else {
-            self.last_was_up = true;
-            self.step_down();
-        }
-
-        println!("up {}", self.step);
-        // 1 sec to double the value! If dt is 1 it doubles beause 1+1*1=2. If dt is smal, less happends
-        self.actual *= 1. + 1. * delta_time * self.step;
-        self.actual
-    }
-    pub fn down(&mut self, time: f64, delta_time: f64) -> f64 {
-        if time - self.last_time > KEY_BREAK_TIME {
-            self.step_down();
-        }
-        self.last_time = time;
-        if self.last_was_up {
-            self.last_was_up = false;
-            self.step_down();
-        } else {
-            // self.step *= 1.01;
-            self.step *= 1. + 1. * delta_time;
-        }
-
-        println!("down {}", self.step);
-        self.actual *= 1. - 1. * delta_time * self.step;
-        self.actual
-    }
-}
 
 pub struct Controls {
     z_view: UpDown,
@@ -75,11 +12,11 @@ pub struct Controls {
 }
 
 impl Controls {
-    pub fn new() -> Controls {
+    pub fn new(ship: &Ship) -> Controls {
         Controls {
-            z_view: UpDown::new(1., 1., 1.), // value, step, min
-            start_time: UpDown::new(2., 1., 0.),
-            burn_time: UpDown::new(5., 1., 0.),
+            z_view: UpDown::new(1., 0.0001, 1., 1.), // value, step, min
+            start_time: UpDown::new(ship.burn_start, 0.0001, 1., 0.001),
+            burn_time: UpDown::new(5., 0.0001, 1., 0.001),
         }
     }
 
@@ -105,6 +42,20 @@ impl Controls {
         }
         if is_key_down(KeyCode::Down) {
             ship.planing_burn_time(-1.);
+        }
+
+        if is_key_down(KeyCode::O) {
+            canvas.mul_predict_count(1.003);
+        }
+        if is_key_down(KeyCode::L) {
+            canvas.mul_predict_count(0.996);
+        }
+
+        if is_key_down(KeyCode::I) {
+            canvas.ramp_predict_show(true);
+        }
+        if is_key_down(KeyCode::K) {
+            canvas.ramp_predict_show(false);
         }
 
         if is_key_down(KeyCode::W) {
@@ -137,5 +88,75 @@ impl Controls {
 
         // + RightBracket
         // - Apostrophe
+    }
+}
+
+struct UpDown {
+    last_time: f64,
+    actual: f64,
+    actual_min: f64,
+    step: f64,
+    step_min: f64,
+    last_was_up: bool,
+}
+
+impl UpDown {
+    pub fn new(actual: f64, actual_min: f64, step: f64, step_min: f64) -> UpDown {
+        UpDown {
+            last_time: 0.,
+            actual,
+            actual_min,
+            step,
+            step_min,
+            last_was_up: true,
+        }
+    }
+
+    fn step_down(&mut self) {
+        self.step /= 2.;
+        if self.step < self.step_min {
+            self.step = self.step_min;
+        }
+        println!("step_down {}", self.step);
+    }
+
+    pub fn up(&mut self, time: f64, delta_time: f64) -> f64 {
+        if time - self.last_time > KEY_BREAK_TIME {
+            self.step_down();
+        }
+        self.last_time = time;
+        if self.last_was_up {
+            // self.step *= 1.01;
+            // 1 sec to double the value! If dt is 1 it doubles beause 1+1*1=2. If dt is smal, less happends
+            self.step *= 1. + 1. * delta_time;
+        } else {
+            self.last_was_up = true;
+            self.step_down();
+        }
+
+        // println!("up {} - {}", self.actual, self.step);
+        // 1 sec to double the value! If dt is 1 it doubles beause 1+1*1=2. If dt is smal, less happends
+        self.actual *= 1. + 1. * delta_time * self.step;
+        self.actual
+    }
+    pub fn down(&mut self, time: f64, delta_time: f64) -> f64 {
+        if time - self.last_time > KEY_BREAK_TIME {
+            self.step_down();
+        }
+        self.last_time = time;
+        if self.last_was_up {
+            self.last_was_up = false;
+            self.step_down();
+        } else {
+            // self.step *= 1.01;
+            self.step *= 1. + 1. * delta_time;
+        }
+
+        // println!("dn {} - {}", self.actual, self.step);
+        self.actual *= 1. - 1. * delta_time * self.step;
+        if self.actual < self.actual_min {
+            self.actual = self.actual_min;
+        }
+        self.actual
     }
 }

@@ -1,3 +1,4 @@
+use crate::masses::*;
 use crate::vec_space::*;
 use macroquad::prelude::*;
 
@@ -8,6 +9,8 @@ pub struct Canvas {
     z_view: f64,
     z_grid: f64,
     // copy from masses
+    predict_count: f64,
+    pub predict_show: usize,
     maximal_orbit_radius: f64,
     max_pixel_from_center: i32,
 }
@@ -20,6 +23,8 @@ impl Canvas {
             xy_view: VecSpace::ZERO,
             z_view: 0.95,
             z_grid: 0.95,
+            predict_count: PREDICT_COUNT as f64,
+            predict_show: 0,
             maximal_orbit_radius: 1.,
             // Die kleinere Fenster-Ausdehnung zählt als normaler darstellbar Bildpunktebereich
             // The smallest extend of the window counts as visible screen range
@@ -29,6 +34,25 @@ impl Canvas {
 
     pub fn set_maximal_orbit_radius(&mut self, val: f64) {
         self.maximal_orbit_radius = val;
+    }
+
+    pub fn mul_predict_count(&mut self, fakt: f64) {
+        self.predict_count *= fakt;
+        if self.predict_count > PREDICT_COUNT as f64 {
+            self.predict_count = PREDICT_COUNT as f64;
+        };
+    }
+
+    pub fn ramp_predict_show(&mut self, up: bool) {
+        if up {
+            if self.predict_show < self.predict_count as usize {
+                self.predict_show += 1;
+            }
+        } else {
+            if self.predict_show > 0 {
+                self.predict_show -= 1;
+            }
+        }
     }
 
     pub fn add_view(&mut self, x: f64, y: f64) {
@@ -79,9 +103,23 @@ impl Canvas {
         draw_circle(x, y, size, color);
     }
 
-    pub fn draw_rectangle(&self, position: VecSpace, color: Color) {
+    fn _draw_rectangle(&self, position: VecSpace, color: Color) {
         let (x, y) = self.to_pixel(position);
         draw_rectangle(x, y, 1., 1., color);
+    }
+
+    pub fn draw_rectangles(&self, positions: [VecSpace; PREDICT_COUNT], color: Color) {
+        for index in 0..self.predict_count as i32 {
+            let i = index as usize;
+            let position = positions[i];
+            let (x, y) = self.to_pixel(position);
+            draw_rectangle(x, y, 1., 1., color);
+        }
+        //for position in positions {
+        //    //self.draw_rectangle(position, color);
+        //    let (x, y) = self.to_pixel(position);
+        //    draw_rectangle(x, y, 1., 1., color);
+        //}
     }
 
     pub fn draw_hud(&self, text: &String, position_index: usize) {
