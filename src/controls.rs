@@ -14,35 +14,29 @@ pub struct Controls {
 impl Controls {
     pub fn new(ship: &Ship) -> Controls {
         Controls {
-            z_view: UpDown::new(1., 0.0001, 1., 1.), // value, step, min
-            start_time: UpDown::new(ship.burn_start, 0.0001, 1., 0.001),
-            burn_time: UpDown::new(5., 0.0001, 1., 0.001),
+            z_view: UpDown::new("z_view", 1., 0.0001, 1., 1.), // value, step, min
+            start_time: UpDown::new("start", ship.burn_start, 0.0001, 1., 0.001),
+            burn_time: UpDown::new("burn", ship.burn_time, 0.0001, 1., 0.001),
         }
     }
 
     pub fn key_down(&mut self, ship: &mut Ship, canvas: &mut Canvas, delta_time: f64) {
-        let time = get_time();
-
         if is_key_down(KeyCode::Space) {
             //masses.ship_accelerate(simulation_step_time);
         }
         if is_key_down(KeyCode::Backspace) {
             //masses.ship_accelerate(-simulation_step_time)
         }
-        if is_key_down(KeyCode::Right) {
-            //ship.planing_start_time(1.);
-            ship.set_start_time(self.start_time.up(time, delta_time));
-        }
-        if is_key_down(KeyCode::Left) {
-            //ship.planing_start_time(-1.);
-            ship.set_start_time(self.start_time.down(time, delta_time));
-        }
-        if is_key_down(KeyCode::Up) {
-            ship.planing_burn_time(1.);
-        }
-        if is_key_down(KeyCode::Down) {
-            ship.planing_burn_time(-1.);
-        }
+
+        ship.set_start_time(
+            self.start_time
+                .up_down(KeyCode::Right, KeyCode::Left, delta_time),
+        );
+
+        ship.set_burn_time(
+            self.burn_time
+                .up_down(KeyCode::Up, KeyCode::Down, delta_time),
+        );
 
         if is_key_down(KeyCode::O) {
             canvas.mul_predict_count(1.003);
@@ -72,19 +66,7 @@ impl Controls {
             canvas.add_view(-1., 0.);
         }
 
-        if is_key_down(KeyCode::E) {
-            //canvas.mul_z_view(1.001);
-            canvas.set_z_view(self.z_view.up(time, delta_time));
-        }
-        if is_key_down(KeyCode::Q) {
-            //canvas.mul_z_view(0.999);
-            canvas.set_z_view(self.z_view.down(time, delta_time));
-        }
-
-        //let x = get_keys_pressed();
-        //if x.len() > 0 {
-        //    println!("keys: {:?}", x);
-        //}
+        canvas.set_z_view(self.z_view.up_down(KeyCode::E, KeyCode::Q, delta_time));
 
         // + RightBracket
         // - Apostrophe
@@ -92,6 +74,7 @@ impl Controls {
 }
 
 struct UpDown {
+    name: &'static str,
     last_time: f64,
     actual: f64,
     actual_min: f64,
@@ -101,8 +84,15 @@ struct UpDown {
 }
 
 impl UpDown {
-    pub fn new(actual: f64, actual_min: f64, step: f64, step_min: f64) -> UpDown {
+    pub fn new(
+        name: &'static str,
+        actual: f64,
+        actual_min: f64,
+        step: f64,
+        step_min: f64,
+    ) -> UpDown {
         UpDown {
+            name,
             last_time: 0.,
             actual,
             actual_min,
@@ -120,7 +110,21 @@ impl UpDown {
         println!("step_down {}", self.step);
     }
 
-    pub fn up(&mut self, time: f64, delta_time: f64) -> f64 {
+    pub fn up_down(&mut self, key_up: KeyCode, key_down: KeyCode, delta_time: f64) -> f64 {
+        let mut set = self.actual;
+        if is_key_down(key_up) {
+            set = self.up(delta_time);
+            println!("{} up: {}", self.name, set);
+        }
+        if is_key_down(key_down) {
+            set = self.down(delta_time);
+            println!("{} down: {}", self.name, set);
+        }
+        set
+    }
+
+    fn up(&mut self, delta_time: f64) -> f64 {
+        let time = get_time();
         if time - self.last_time > KEY_BREAK_TIME {
             self.step_down();
         }
@@ -139,7 +143,8 @@ impl UpDown {
         self.actual *= 1. + 1. * delta_time * self.step;
         self.actual
     }
-    pub fn down(&mut self, time: f64, delta_time: f64) -> f64 {
+    fn down(&mut self, delta_time: f64) -> f64 {
+        let time = get_time();
         if time - self.last_time > KEY_BREAK_TIME {
             self.step_down();
         }

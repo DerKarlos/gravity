@@ -1,9 +1,9 @@
+//! Simmulation of one scene: create and move masses and the ship
+//! and values, not given by the masses.
+
 use crate::canvas::*;
 use crate::masses::*;
 use macroquad::prelude::*;
-
-/// Simmulation of one scene: create and move masses and the ship
-/// and values, not given by the masses.
 
 // About like the framerate in Hz, but will be checked and repeated if needed
 pub const SIMULATION_STEPS_PER_APP_SECOND: f64 = 50.;
@@ -40,7 +40,6 @@ impl Simulation {
         self.text = text.to_string();
     }
 
-    // just ms form s ???
     pub fn app_to_world_seconds(&self, time: f64) -> f64 {
         let world_seconds_per_app_second =
             self.world_seconds_per_step * SIMULATION_STEPS_PER_APP_SECOND;

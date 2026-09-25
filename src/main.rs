@@ -103,3 +103,6 @@ async fn main() {
         next_frame().await
     }
 }
+
+// Clippy • rustfmt •
+// cargo clippy cargo fmt

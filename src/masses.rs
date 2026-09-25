@@ -1,12 +1,12 @@
+//! Collection and instances of masses, like sun moon and stars
+//! and mass related values, calculated of them
+
 use crate::canvas::*;
 use crate::simulation::*;
 use crate::vec_space::*;
 use macroquad::prelude::*;
 
-/// Collection and instances of masses, like sun moon and stars
-/// and mass related values, calculated of them
-
-///// Parameter /////
+//////////////////// Parameter ////////////////////
 
 pub const PREDICT_COUNT: usize = 1000;
 
@@ -85,7 +85,7 @@ impl<'a> MassData<'a> {
     }
 
     pub fn mul_radius(&self, fakt: f64) -> Self {
-        let mut ret = self.clone();
+        let mut ret = *self; // = self.clone();
         ret.orbit_radius *= fakt;
         ret
     }
@@ -93,17 +93,16 @@ impl<'a> MassData<'a> {
 
 // =================== MASS STRUCT/CLASS ===================
 
-// avoid pub???
 #[derive(Debug, Clone)]
 pub struct Mass {
-    _name: String, // why not &str ???
+    _name: String, // why not &'static str ???
     mass: f64,
     diameter: f64,
     orbit_time: f64,
     color: Color,
     acceleration: VecSpace,
-    pub velocity: VecSpace,
-    pub position: VecSpace,
+    velocity: VecSpace,
+    position: VecSpace,
     positions: [VecSpace; PREDICT_COUNT],
 }
 
@@ -143,17 +142,32 @@ impl Mass {
             positions: [VecSpace::ZERO; PREDICT_COUNT],
         };
 
-        if orbits.is_some() {
-            mass.orbit_time = Self::set_v_orbit(&mut mass, &mut orbits.unwrap(), data.excentricity);
+        if let Some(orbited_mass) = orbits {
+            mass.orbit_time = Self::set_v_orbit(&mut mass, orbited_mass, data.excentricity);
         }
 
         mass.positions[0] = position;
-        return mass;
+        mass
+    }
+
+    pub fn get_position(&self) -> VecSpace {
+        self.position
+    }
+
+    pub fn set_position(&mut self, val: VecSpace) {
+        self.position = val;
+    }
+
+    pub fn get_velocity(&self) -> VecSpace {
+        self.velocity
+    }
+
+    pub fn set_velocity(&mut self, val: VecSpace) {
+        self.velocity = val;
     }
 
     /// Computes orbital velocity for a circular orbit
     /// around a body with `central_mass` at distance `radius` (in meters)
-
     fn set_v_orbit(mass: &mut Mass, other: &mut Mass, excentriticy: f64) -> f64 {
         let signum = if mass.position.y() > 0.0 { 1.0 } else { -1.0 };
         mass.position += other.position;
@@ -193,16 +207,14 @@ impl Mass {
         other.acceleration += acceleration_vector;
     }
 
-    fn drag_position(&self, position: VecSpace, position_index: usize) -> VecSpace {
+    fn get_drag_for_that_position(&self, position: VecSpace, position_index: usize) -> VecSpace {
         let mut distance_vector = self.positions[position_index] - position;
         let distance = distance_vector.length();
         distance_vector.normalize();
 
         // F = force (N) : m = mass (kg) / r² = distance² (m²) * G = 6.67430 × 10⁻¹¹ m³/(kg·s²)
         let acceleration = self.mass / (distance * distance) * GRAVITY_CONSTANT_OF_EARTH;
-        let acceleration_vector = distance_vector * acceleration;
-
-        acceleration_vector
+        distance_vector * acceleration
     }
 
     pub fn move_seconds(&mut self, seconds: f64, positions_index: usize) {
@@ -285,14 +297,10 @@ impl Masses {
         &mut self.masses[index]
     }
 
-    pub fn _get_position_from_index(&self, mass_index: usize, positon_index: usize) -> VecSpace {
-        self.masses[mass_index].positions[positon_index]
-    }
-
     pub fn drag_at_position(&self, position: VecSpace, index: usize) -> VecSpace {
         let mut acceleration = VecSpace::ZERO;
         for mass in &self.masses {
-            acceleration += mass.drag_position(position, index)
+            acceleration += mass.get_drag_for_that_position(position, index)
         }
         acceleration
     }

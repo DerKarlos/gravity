@@ -50,7 +50,8 @@ pub fn set_scene(scene: i16) -> (Simulation, Masses, Ship, Canvas) {
             simulation.set_seconds_per_orbit(60.);
             let earth = masses.add_at_place(&earth_data);
             masses.add_in_orbit(&luna_data, earth);
-            //???ship.set_in_orbit(&mut masses, &ship_data, earth);
+            ship.set_in_orbit(&mut masses, &ship_data, earth);
+            //ip.set_in_orbit(&mut masses, &ship_data.mul_radius(0.1), earth);
         }
 
         4 => {
@@ -74,8 +75,9 @@ pub fn set_scene(scene: i16) -> (Simulation, Masses, Ship, Canvas) {
             let earth = masses.add_at_place(&earth_data);
             let luna = masses.add_in_orbit(&luna_data.mul_radius(0.1), earth);
             ship.set_in_orbit(&mut masses, &ship_data.mul_radius(0.1), earth);
-            ship.set_burn(0.289, 1.1781022706580768); // Luna-Orbit
-            ship.set_burn(0.339, 1.48); // Not an 8 curse yet
+            ship.set_burn(0.30583935592786876, 1.4711292722479974); // Into Luna orbit
+            ship.set_burn(0.30583935592786876, 1.48); // realy an 8 curse?
+
             simulation.run_mode = false;
             ship.set_rotation(0., earth, luna);
         }
@@ -87,7 +89,7 @@ pub fn set_scene(scene: i16) -> (Simulation, Masses, Ship, Canvas) {
 
     // initially simulate all the future positinos
     masses.predict_positions(&mut simulation);
-    ship.predict_positions(&mut simulation, &mut masses);
+    ship.predict_positions(&simulation, &masses);
 
     (simulation, masses, ship, canvas)
 }
