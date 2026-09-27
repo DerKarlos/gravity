@@ -1,0 +1,71 @@
+rustup update
+cargo check/build(--release)/run(--example myex)
+cargo clippy
+cargo fmt
+
+RUST_BACKTRACE=1 cargo ...
+
+
+
+### Contitional code for
+## Cargo.toml …
+[target.‘cfg(target_arch = “wasm32”)’.features] [target.‘cfg(target_arch = “wasm32”)’.dev-dependencies] [target.‘cfg(target_arch = “aarch64”)’.dev-dependencies]
+## and Rust.rs:
+#[cfg(not(target_arch = “wasm32”))]
+
+
+### Notes on WASM:  run server localhost
+https://www.youtube.com/watch?v=VjXiREbPtJs % rustup update
+% rustup target add wasm32-unknown-unknown
+% cargo install -f wasm-bindgen-cli    !!! AT THE PROJECT DIR !!!
+% cargo build --release --target wasm32-unknown-unknown
+% wasm-bindgen --out-dir ./out/ --target web ./target/wasm32-unknown-unknown/release(/examples)/<name>.wasm
+% npx serve .
+
+cargo build --example bevy --release --target wasm32-unknown-unknown
+wasm-bindgen --out-dir ./out/ --target web ./target/wasm32-unknown-unknown/release/examples/bevy.wasm
+
+“blocking” was not supported for WASM. Change (Bevy-)Code code do NON-blocking
+https://lib.rs/crates/bevy-async-runner
+https://docs.rs/crate/bevy-tokio-tasks/latest/source/examples/current_thread_runtime.rs
+
+https://dev.to/sbelzile/making-games-in-rust-deploying-a-bevy-app-to-the-web-1ahn
+
+EURORUST @euro_rust Building BEVY, WASM AND THE BROWSER FRANÇOIS MOCKERS OPTIMISING
+• For size • Smaller file to download • Less code to run • Disable Bevy features you don't need
+• The best code to optimise is the one not even compiled • A step further
+• https://github.com/WebAssembly/binaryen
+, https://rustwasm.github.io/docs/book/reference/code-size.html
+• https://github.com/rustwasm/twiggy
+• https://github.com/rustwasm/wasm-snip
+
+## sh obi_wasm.sh
+
+echo start
+cargo build --example obi_wasm --release --target wasm32-unknown-unknown
+echo wasm-bindgen
+wasm-bindgen --out-dir ./obi/ --target web ./target/wasm32-unknown-unknown/release/examples/obi_wasm.wasm
+echo wasm-opt "(30s ?)"
+# rem
+wasm-opt -Oz obi/obi_wasm_bg.wasm --output obi/obi_wasm_bg.wasm
+echo done done done done done done done done done
+
+# For wasm, you should use wasm-opt to reduce the size,
+# possibly along with compilation flags like opt-level='z', lto=true and codegen-units=1.
+# Note that you should only use these for release builds for wasm.
+# Debug builds will be way larger anyways, and you should probably develop/debug with a native build.
+
+
+
+### Notes on Zed:
+- The term and handling of “project” is not descriptor. I found only a “Find in Project”
+- Overtype / Exchange Mode, not Insert: Zig default is like VScode: no overtype, but an extension NOT vor Zed
+
+Key-bindings: cmd-shift-r Select and run task. cmd-opt-r Run last task again. Opt-cmd-down Block select.
+
+
+------------------------------------
+
+### Notes OUTSIDE Rust
+
+Invisible hidden unsichtbare Dateien anzeigen mit: Command + Shift + .   (Punkt)
