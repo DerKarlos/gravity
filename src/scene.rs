@@ -11,6 +11,10 @@ pub fn set_scene(
     masses: &mut Masses,
     ship: &mut Ship,
 ) -> Simulation {
+    canvas.reset();
+    masses.reset();
+    ship.reset();
+
     let mut simulation = Simulation::new(scene_id);
 
     // some masses

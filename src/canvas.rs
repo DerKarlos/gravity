@@ -10,7 +10,7 @@ pub struct Canvas {
     z_grid: f64,
     // copy from masses
     predict_count: f64,
-    pub predict_show: usize,
+    predict_show: usize,
     maximal_orbit_radius: f64,
     max_pixel_from_center: i32,
 }
@@ -30,6 +30,19 @@ impl Canvas {
             // The smallest extend of the window counts as visible screen range
             max_pixel_from_center: conf.window_height.min(conf.window_width) / 2,
         }
+    }
+
+    pub fn reset(&mut self) {
+        self.xy_view = VecSpace::ZERO;
+        self.z_view = 0.95;
+        self.z_grid = 0.95;
+        self.predict_count = PREDICT_COUNT as f64;
+        self.predict_show = 0;
+        self.maximal_orbit_radius = 1.;
+    }
+
+    pub fn get_predict_show(&self) -> usize {
+        self.predict_show
     }
 
     pub fn set_maximal_orbit_radius(&mut self, val: f64) {

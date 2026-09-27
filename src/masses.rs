@@ -226,7 +226,7 @@ impl Mass {
 
     // do it by thread_local ?
     pub fn draw(&self, canvas: &Canvas, positions_index: usize) {
-        let index = positions_index + canvas.predict_show % PREDICT_COUNT;
+        let index = positions_index + canvas.get_predict_show() % PREDICT_COUNT;
         canvas.draw_circle(
             self.positions[index],
             // visible size not real and less proportional to avoid big differences
@@ -263,6 +263,13 @@ impl Masses {
             maximal_orbit_time: 1.,
             maximal_orbit_radius: 1.,
         }
+    }
+
+    pub fn reset(&mut self) {
+        self.masses = Vec::new();
+        self.positions_index = 0;
+        self.maximal_orbit_time = 1.;
+        self.maximal_orbit_radius = 1.;
     }
 
     pub fn positions_index(&self) -> usize {
