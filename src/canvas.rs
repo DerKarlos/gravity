@@ -132,8 +132,7 @@ impl Canvas {
         );
     }
 
-    // draw only contains "draw_grid"
-    pub fn draw(&mut self) {
+    pub fn draw_grid(&mut self) {
         if self.z_view > self.z_grid {
             self.z_grid *= 2.0;
             // println!("z_draw: {}", &masses.z_grid);

@@ -6,6 +6,9 @@ mod ship;
 mod simulation;
 mod vec_space;
 
+use crate::masses::*;
+use crate::ship::*;
+use canvas::*;
 use controls::*;
 use macroquad::prelude::*;
 use scene::*;
@@ -25,7 +28,10 @@ pub fn conf() -> Conf {
 async fn main() {
     // let (mut simulation, mut masses, mut ship, mut canvas) = set_scene(0);
 
-    let (mut simulation, mut masses, mut ship, mut canvas) = set_scene(0);
+    let mut masses = Masses::new();
+    let mut ship = Ship::default();
+    let mut canvas = Canvas::new(&conf());
+    let mut simulation = set_scene(0, &mut canvas, &mut masses, &mut ship);
 
     let mut controls = Controls::new(&ship);
 
@@ -46,25 +52,25 @@ async fn main() {
                 }
 
                 'r' => {
-                    (simulation, masses, ship, canvas) = set_scene(simulation.scene);
+                    simulation = set_scene(simulation.scene, &mut canvas, &mut masses, &mut ship);
                 }
                 '0' => {
-                    (simulation, masses, ship, canvas) = set_scene(0);
+                    simulation = set_scene(0, &mut canvas, &mut masses, &mut ship);
                 }
                 '1' => {
-                    (simulation, masses, ship, canvas) = set_scene(1);
+                    simulation = set_scene(1, &mut canvas, &mut masses, &mut ship);
                 }
                 '2' => {
-                    (simulation, masses, ship, canvas) = set_scene(2);
+                    simulation = set_scene(2, &mut canvas, &mut masses, &mut ship);
                 }
                 '3' => {
-                    (simulation, masses, ship, canvas) = set_scene(3);
+                    simulation = set_scene(3, &mut canvas, &mut masses, &mut ship);
                 }
                 '4' => {
-                    (simulation, masses, ship, canvas) = set_scene(4);
+                    simulation = set_scene(4, &mut canvas, &mut masses, &mut ship);
                 }
                 '5' => {
-                    (simulation, masses, ship, canvas) = set_scene(5);
+                    simulation = set_scene(5, &mut canvas, &mut masses, &mut ship);
                 }
 
                 _ => (), // println!("Char not used: {:?}!", char),
@@ -73,8 +79,8 @@ async fn main() {
 
         clear_background(BLACK);
 
-        canvas.draw(); // grid
-        simulation.draw(&masses, &canvas); // text
+        canvas.draw_grid();
+        simulation.draw_text(&masses, &canvas);
         masses.draw(&canvas); // incl. prediction
         ship.draw(&canvas);
 

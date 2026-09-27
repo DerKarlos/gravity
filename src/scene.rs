@@ -2,15 +2,16 @@ use crate::canvas::*;
 use crate::masses::*;
 use crate::ship::*;
 use crate::simulation::*;
-use crate::*;
 
 use macroquad::prelude::*;
 
-pub fn set_scene(scene: i16) -> (Simulation, Masses, Ship, Canvas) {
-    let mut simulation = Simulation::new(scene);
-    let mut masses = Masses::new();
-    let mut ship = Ship::default();
-    let mut canvas = Canvas::new(&conf());
+pub fn set_scene(
+    scene_id: i16,
+    canvas: &mut Canvas,
+    masses: &mut Masses,
+    ship: &mut Ship,
+) -> Simulation {
+    let mut simulation = Simulation::new(scene_id);
 
     // some masses
     let sun_data = MassData::fixstar("sun", YELLOW, km(1.3914e6), mass_sol(1.));
@@ -32,7 +33,7 @@ pub fn set_scene(scene: i16) -> (Simulation, Masses, Ship, Canvas) {
     let comet_data = MassData::ellipse("comet", WHITE, km(500.0), kg(1e6), au(1.3), 0.4);
     let ship_data = MassData::orbiter("ship", WHITE, 10.0, 0.0, km(80000.)); // the real 300km are not visible
 
-    match scene {
+    match scene_id {
         1 => {
             simulation.set_text("Sun, Earth");
             let sun = masses.add_at_place(&sun_data);
@@ -50,7 +51,7 @@ pub fn set_scene(scene: i16) -> (Simulation, Masses, Ship, Canvas) {
             simulation.set_seconds_per_orbit(60.);
             let earth = masses.add_at_place(&earth_data);
             masses.add_in_orbit(&luna_data, earth);
-            ship.set_in_orbit(&mut masses, &ship_data, earth);
+            ship.set_in_orbit(masses, &ship_data, earth);
             //ip.set_in_orbit(&mut masses, &ship_data.mul_radius(0.1), earth);
         }
 
@@ -74,7 +75,7 @@ pub fn set_scene(scene: i16) -> (Simulation, Masses, Ship, Canvas) {
             simulation.set_text("Test:moon 8 loop");
             let earth = masses.add_at_place(&earth_data);
             let luna = masses.add_in_orbit(&luna_data.mul_radius(0.1), earth);
-            ship.set_in_orbit(&mut masses, &ship_data.mul_radius(0.1), earth);
+            ship.set_in_orbit(masses, &ship_data.mul_radius(0.1), earth);
             ship.set_burn(0.30583935592786876, 1.4711292722479974); // Into Luna orbit
             ship.set_burn(0.30583935592786876, 1.48); // realy an 8 curse?
 
@@ -85,11 +86,11 @@ pub fn set_scene(scene: i16) -> (Simulation, Masses, Ship, Canvas) {
 
     // All masses are there, calculate the simulation time by the maximal orbit time
     simulation.set_orbit_time(&masses);
-    masses.set_radius(&mut canvas);
+    masses.set_radius(canvas);
 
     // initially simulate all the future positinos
     masses.predict_positions(&mut simulation);
     ship.predict_positions(&simulation, &masses);
 
-    (simulation, masses, ship, canvas)
+    simulation
 }
