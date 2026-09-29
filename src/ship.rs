@@ -30,17 +30,6 @@ impl Ship {
         }
     }
 
-    pub fn reset(&mut self) {
-        self.mass = Mass::_zero();
-        self.burn_start = 0.0;
-        self.burn_time = 0.0;
-        self.position = VecSpace::ZERO;
-        self.velocity = VecSpace::ZERO;
-        self.rotation_start = 0.;
-        self.rotation_a = 0;
-        self.rotation_b = 0;
-    }
-
     pub fn set_rotation(&mut self, start: f64, a: usize, b: usize) {
         self.rotation_start = start;
         self.rotation_a = a;
@@ -123,8 +112,8 @@ impl Ship {
         self.mass.set_velocity(self.velocity);
     }
 
-    pub fn draw(&self, canvas: &Canvas) {
-        self.mass.draw(canvas, 0);
+    pub fn draw(&self, canvas: &Canvas, masses: &Masses) {
+        self.mass.draw(canvas, 0, masses.get_predict_show());
     }
 
     pub fn _planing_start_time(&mut self, set: f64) {

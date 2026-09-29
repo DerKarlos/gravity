@@ -225,8 +225,8 @@ impl Mass {
     }
 
     // do it by thread_local ?
-    pub fn draw(&self, canvas: &Canvas, positions_index: usize) {
-        let index = positions_index + canvas.get_predict_show() % PREDICT_COUNT;
+    pub fn draw(&self, canvas: &Canvas, positions_index: usize, predict_show: usize) {
+        let index = positions_index + predict_show % PREDICT_COUNT;
         canvas.draw_circle(
             self.positions[index],
             // visible size not real and less proportional to avoid big differences
@@ -234,10 +234,11 @@ impl Mass {
             self.color,
         );
         //println!("x/y {}/{}", screen_pos.x() as f32, screen_pos.y() as f32);
-        canvas.draw_rectangles(self.positions, self.color);
-        //for position in &self.positions {
-        //    canvas.draw_rectangle(*position, self.color);
-        //}
+
+        // canvas.draw_rectangles(self.positions, self.color);
+        for position in &self.positions {
+            canvas.draw_rectangle(*position, self.color);
+        }
     }
 }
 
@@ -253,6 +254,8 @@ pub struct Masses {
     maximal_orbit_time: f64,
     // Calculated by the masses. Also needed and copied to the canvas.
     maximal_orbit_radius: f64,
+    predict_count: f64,
+    predict_show: usize,
 }
 
 impl Masses {
@@ -262,14 +265,9 @@ impl Masses {
             positions_index: 0,
             maximal_orbit_time: 1.,
             maximal_orbit_radius: 1.,
+            predict_count: PREDICT_COUNT as f64,
+            predict_show: 0,
         }
-    }
-
-    pub fn reset(&mut self) {
-        self.masses = Vec::new();
-        self.positions_index = 0;
-        self.maximal_orbit_time = 1.;
-        self.maximal_orbit_radius = 1.;
     }
 
     pub fn positions_index(&self) -> usize {
@@ -278,6 +276,25 @@ impl Masses {
 
     pub fn maximal_orbit_time(&self) -> f64 {
         self.maximal_orbit_time
+    }
+
+    pub fn mul_predict_count(&mut self, fakt: f64) {
+        self.predict_count *= fakt;
+        if self.predict_count > PREDICT_COUNT as f64 {
+            self.predict_count = PREDICT_COUNT as f64;
+        };
+    }
+
+    pub fn ramp_predict_show(&mut self, up: bool) {
+        if up {
+            if self.predict_show < self.predict_count as usize {
+                self.predict_show += 1;
+            }
+        } else {
+            if self.predict_show > 0 {
+                self.predict_show -= 1;
+            }
+        }
     }
 
     pub fn add_at_place(&mut self, data: &MassData) -> usize {
@@ -300,6 +317,9 @@ impl Masses {
         canvas.set_maximal_orbit_radius(self.maximal_orbit_radius);
     }
 
+    pub fn get_predict_show(&self) -> usize {
+        self.predict_show
+    }
     pub fn get_from_index(&mut self, index: usize) -> &mut Mass {
         &mut self.masses[index]
     }
@@ -358,7 +378,7 @@ impl Masses {
 
     pub fn draw(&self, canvas: &Canvas) {
         for mass in &self.masses {
-            mass.draw(canvas, self.positions_index);
+            mass.draw(canvas, self.positions_index, self.predict_show);
         }
     }
 }

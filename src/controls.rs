@@ -1,4 +1,5 @@
 use crate::canvas::*;
+use crate::masses::*;
 use crate::ship::*;
 
 use macroquad::prelude::*;
@@ -20,7 +21,13 @@ impl Controls {
         }
     }
 
-    pub fn key_down(&mut self, ship: &mut Ship, canvas: &mut Canvas, delta_time: f64) {
+    pub fn key_down(
+        &mut self,
+        ship: &mut Ship,
+        masses: &mut Masses,
+        canvas: &mut Canvas,
+        delta_time: f64,
+    ) {
         if is_key_down(KeyCode::Space) {
             //masses.ship_accelerate(simulation_step_time);
         }
@@ -39,17 +46,17 @@ impl Controls {
         );
 
         if is_key_down(KeyCode::O) {
-            canvas.mul_predict_count(1.003);
+            masses.mul_predict_count(1.003);
         }
         if is_key_down(KeyCode::L) {
-            canvas.mul_predict_count(0.996);
+            masses.mul_predict_count(0.996);
         }
 
         if is_key_down(KeyCode::I) {
-            canvas.ramp_predict_show(true);
+            masses.ramp_predict_show(true);
         }
         if is_key_down(KeyCode::K) {
-            canvas.ramp_predict_show(false);
+            masses.ramp_predict_show(false);
         }
 
         if is_key_down(KeyCode::W) {
