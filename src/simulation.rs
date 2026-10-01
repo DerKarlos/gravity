@@ -61,10 +61,6 @@ impl Simulation {
         self.simulated_world_seconds += self.world_seconds_per_step;
     }
 
-    //pub fn ship_accelerate(&mut self, acceleration: f64) {
-    //    //self.ship.ship_accelerate(acceleration);
-    //}
-
     pub fn toggle_run_mode(&mut self) {
         self.run_mode = !self.run_mode;
         if !self.run_mode {
@@ -75,30 +71,6 @@ impl Simulation {
             // ??? self.burn_time = y;
         }
     }
-
-    //pub fn drag_and_move <== simulate_masses_step(&mut self, simulated_seconds_per_step: f64) {
-    //    // First drag, sedound move
-    //
-    //    // Each mass drags each other mass, except itselfes
-    //    for i in 0..self.masses.len() {
-    //        for j in (i + 1)..self.masses.len() {
-    //            let (left, right) = self.masses.split_at_mut(j);
-    //
-    //            let a = &mut left[i];
-    //            let b = &mut right[0];
-    //            a.drag(b);
-    //            b.drag(a);
-    //        }
-    //    }
-    //
-    //    // Move the masses at the head of the prediction
-    //    for mass in &mut self.masses {
-    //        mass.move_seconds(
-    //            simulated_seconds_per_step,
-    //            self.positions_draw_and_write_index,
-    //        );
-    //    }
-    //}
 
     pub fn draw_text(&mut self, masses: &Masses, canvas: &Canvas) {
         canvas.draw_hud(&self.text, masses.get_position());

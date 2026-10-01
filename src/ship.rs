@@ -75,11 +75,6 @@ impl Ship {
     // prediktor for ship: save, predict, restore
     // (the ship is moved independend of masses positions_index)
     pub fn predict_positions(&mut self, simulation: &Simulation, masses: &Masses) {
-        //self.mass.move_seconds(
-        //    simulation.simulated_seconds_per_step,
-        //    masses.positions_index(),
-        //);
-
         let rotate = self.rotation_a == self.rotation_b;
 
         self.position = self.mass.get_position();
@@ -113,7 +108,8 @@ impl Ship {
     }
 
     pub fn draw(&self, canvas: &Canvas, masses: &Masses) {
-        self.mass.draw(canvas, 0, masses.get_predict_show());
+        self.mass
+            .draw(canvas, 0, masses.get_predict_show(), masses.predict_count);
     }
 
     pub fn _planing_start_time(&mut self, set: f64) {

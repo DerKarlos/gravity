@@ -12,7 +12,7 @@ pub struct Canvas {
 }
 
 impl Canvas {
-    pub fn new(conf: &Conf) -> Canvas {
+    pub fn draw_new(conf: &Conf) -> Canvas {
         Canvas {
             window_with: conf.window_width,
             window_height: conf.window_height,
@@ -30,43 +30,24 @@ impl Canvas {
     //    self.predict_show
     //}
 
-    pub fn set_maximal_orbit_radius(&mut self, val: f64) {
+    pub fn draw_set_maximal_orbit_radius(&mut self, val: f64) {
         self.maximal_orbit_radius = val;
     }
 
-    pub fn add_view(&mut self, x: f64, y: f64) {
+    pub fn _draw_add_to_xy_view(&mut self, x: f64, y: f64) {
         self.xy_view += VecSpace::new(x, y);
     }
 
-    pub fn _mul_z_view(&mut self, fakt: f64) {
-        self.z_view *= fakt;
+    pub fn draw_set_x_view(&mut self, val: f64) {
+        self.xy_view.set_x(val);
     }
 
-    pub fn set_z_view(&mut self, val: f64) {
+    pub fn draw_set_y_view(&mut self, val: f64) {
+        self.xy_view.set_y(val);
+    }
+
+    pub fn draw_set_z_view(&mut self, val: f64) {
         self.z_view = val;
-    }
-
-    /// calculate the metric simulated values from the pixel position
-    /// by screen-center maximal orbit and screen and z-zoom faktor
-    fn _from_pixel(&self, x: i32, y: i32) -> VecSpace {
-        let scale = self.maximal_orbit_radius / self.z_view / self.max_pixel_from_center as f64;
-        // window_center in self? Dymamic by resize todo
-        let window_center: VecSpace =
-            VecSpace::new(self.window_with as f64 / 2., self.window_height as f64 / 2.);
-
-        VecSpace::new(x as f64, y as f64) - window_center * scale //abs??
-    }
-
-    /// calculate the pixel position from the metric simulated values
-    /// by maximal orbit and screen and z-zoom faktor and screen center
-    fn to_pixel(&self, position: VecSpace) -> (f32, f32) {
-        let window_center: VecSpace =
-            VecSpace::new(self.window_with as f64 / 2., self.window_height as f64 / 2.);
-        let scale = self.z_view / self.maximal_orbit_radius * self.max_pixel_from_center as f64;
-
-        // Scale by view, divide by scene multiply by screen, add screen center
-        let screen_pos = position * scale + self.xy_view + window_center;
-        (screen_pos.x() as f32, screen_pos.y() as f32)
     }
 
     pub fn draw_circle(&self, position: VecSpace, diameter: f64, color: Color) {
@@ -86,20 +67,6 @@ impl Canvas {
         let (x, y) = self.to_pixel(position);
         draw_rectangle(x, y, 1., 1., color);
     }
-
-    //pub fn _draw_rectangles(&self, positions: [VecSpace; PREDICT_COUNT], color: Color) {
-    //    for index in 0..self.predict_count as i32 {
-    //        let i = index as usize;
-    //        let position = positions[i];
-    //        let (x, y) = self.to_pixel(position);
-    //        draw_rectangle(x, y, 1., 1., color);
-    //    }
-    //    //for position in positions {
-    //    //    //self.draw_rectangle(position, color);
-    //    //    let (x, y) = self.to_pixel(position);
-    //    //    draw_rectangle(x, y, 1., 1., color);
-    //    //}
-    //}
 
     pub fn draw_hud(&self, text: &String, position_index: usize) {
         draw_text(
@@ -156,6 +123,18 @@ impl Canvas {
                 break;
             }
         }
+    }
+
+    /// calculate the pixel position from the metric simulated values
+    /// by maximal orbit and screen and z-zoom faktor and screen center
+    fn to_pixel(&self, position: VecSpace) -> (f32, f32) {
+        let window_center: VecSpace =
+            VecSpace::new(self.window_with as f64 / 2., self.window_height as f64 / 2.);
+        let scale = self.z_view / self.maximal_orbit_radius * self.max_pixel_from_center as f64;
+
+        // Scale by view, divide by scene multiply by screen, add screen center
+        let screen_pos = position * scale + self.xy_view + window_center;
+        (screen_pos.x() as f32, screen_pos.y() as f32)
     }
 }
 

@@ -1,12 +1,15 @@
 use crate::canvas::*;
 use crate::masses::*;
 use crate::ship::*;
+use crate::simulation::*;
 
 use macroquad::prelude::*;
 
 const KEY_BREAK_TIME: f64 = 0.33;
 
 pub struct Controls {
+    x_view: UpDown,
+    y_view: UpDown,
     z_view: UpDown,
     start_time: UpDown,
     burn_time: UpDown,
@@ -15,9 +18,11 @@ pub struct Controls {
 impl Controls {
     pub fn new(ship: &Ship) -> Controls {
         Controls {
-            z_view: UpDown::new("z_view", 1., 0.0001, 1., 1.), // value, step, min
-            start_time: UpDown::new("start", ship.burn_start, 0.0001, 1., 0.001),
-            burn_time: UpDown::new("burn", ship.burn_time, 0.0001, 1., 0.001),
+            x_view: UpDown::new("x_view", Formular::ADD, 0., -9999., 50., 1.), // value, min, step, min
+            y_view: UpDown::new("y_view", Formular::ADD, 0., -9999., 50., 1.),
+            z_view: UpDown::new("z_view", Formular::ADD, 1., 0.0001, 1., 1.),
+            start_time: UpDown::new("start", Formular::MUL, ship.burn_start, 0.0001, 1., 0.001),
+            burn_time: UpDown::new("burn", Formular::MUL, ship.burn_time, 0.0001, 1., 0.001),
         }
     }
 
@@ -29,10 +34,10 @@ impl Controls {
         delta_time: f64,
     ) {
         if is_key_down(KeyCode::Space) {
-            //masses.ship_accelerate(simulation_step_time);
+            ship.mass.ship_accelerate_ahead(SIMULATION_STEP_TIME);
         }
         if is_key_down(KeyCode::Backspace) {
-            //masses.ship_accelerate(-simulation_step_time)
+            ship.mass.ship_accelerate_ahead(-SIMULATION_STEP_TIME)
         }
 
         ship.set_start_time(
@@ -59,29 +64,24 @@ impl Controls {
             masses.ramp_predict_show(false);
         }
 
-        if is_key_down(KeyCode::W) {
-            canvas.add_view(0., 1.);
-        }
-        if is_key_down(KeyCode::S) {
-            canvas.add_view(0., -1.);
-        }
-
-        if is_key_down(KeyCode::A) {
-            canvas.add_view(1., 0.);
-        }
-        if is_key_down(KeyCode::D) {
-            canvas.add_view(-1., 0.);
-        }
-
-        canvas.set_z_view(self.z_view.up_down(KeyCode::E, KeyCode::Q, delta_time));
+        canvas.draw_set_x_view(self.x_view.up_down(KeyCode::A, KeyCode::D, delta_time));
+        canvas.draw_set_y_view(self.y_view.up_down(KeyCode::W, KeyCode::S, delta_time));
+        canvas.draw_set_z_view(self.z_view.up_down(KeyCode::E, KeyCode::Q, delta_time));
 
         // + RightBracket
         // - Apostrophe
     }
 }
 
+#[derive(Clone, Copy)]
+enum Formular {
+    ADD,
+    MUL,
+}
+
 struct UpDown {
     name: &'static str,
+    formular: Formular,
     last_time: f64,
     actual: f64,
     actual_min: f64,
@@ -93,6 +93,7 @@ struct UpDown {
 impl UpDown {
     pub fn new(
         name: &'static str,
+        formular: Formular,
         actual: f64,
         actual_min: f64,
         step: f64,
@@ -100,6 +101,7 @@ impl UpDown {
     ) -> UpDown {
         UpDown {
             name,
+            formular,
             last_time: 0.,
             actual,
             actual_min,
@@ -137,7 +139,6 @@ impl UpDown {
         }
         self.last_time = time;
         if self.last_was_up {
-            // self.step *= 1.01;
             // 1 sec to double the value! If dt is 1 it doubles beause 1+1*1=2. If dt is smal, less happends
             self.step *= 1. + 1. * delta_time;
         } else {
@@ -147,7 +148,12 @@ impl UpDown {
 
         // println!("up {} - {}", self.actual, self.step);
         // 1 sec to double the value! If dt is 1 it doubles beause 1+1*1=2. If dt is smal, less happends
-        self.actual *= 1. + 1. * delta_time * self.step;
+
+        match self.formular {
+            Formular::MUL => self.actual *= 1. + 1. * delta_time * self.step,
+            Formular::ADD => self.actual += delta_time * self.step,
+        }
+
         self.actual
     }
     fn down(&mut self, delta_time: f64) -> f64 {
@@ -165,7 +171,12 @@ impl UpDown {
         }
 
         // println!("dn {} - {}", self.actual, self.step);
-        self.actual *= 1. - 1. * delta_time * self.step;
+        // self.actual *= 1. - 1. * delta_time * self.step;
+        match self.formular {
+            Formular::MUL => self.actual *= 1. - 1. * delta_time * self.step,
+            Formular::ADD => self.actual -= delta_time * self.step,
+        }
+
         if self.actual < self.actual_min {
             self.actual = self.actual_min;
         }

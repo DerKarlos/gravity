@@ -53,6 +53,14 @@ impl VecSpace {
         Self { x, y }
     }
 
+    pub fn set_x(&mut self, val: f64) {
+        self.x = val;
+    }
+
+    pub fn set_y(&mut self, val: f64) {
+        self.y = val;
+    }
+
     pub fn x(&self) -> f64 {
         self.x
     }

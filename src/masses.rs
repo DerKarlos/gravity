@@ -225,8 +225,14 @@ impl Mass {
     }
 
     // do it by thread_local ?
-    pub fn draw(&self, canvas: &Canvas, positions_index: usize, predict_show: usize) {
-        let index = positions_index + predict_show % PREDICT_COUNT;
+    pub fn draw(
+        &self,
+        canvas: &Canvas,
+        positions_index: usize,
+        predict_show: usize,
+        predict_count: f64,
+    ) {
+        let index = (positions_index + predict_show) % PREDICT_COUNT;
         canvas.draw_circle(
             self.positions[index],
             // visible size not real and less proportional to avoid big differences
@@ -235,9 +241,10 @@ impl Mass {
         );
         //println!("x/y {}/{}", screen_pos.x() as f32, screen_pos.y() as f32);
 
-        // canvas.draw_rectangles(self.positions, self.color);
-        for position in &self.positions {
-            canvas.draw_rectangle(*position, self.color);
+        for index in 0..predict_count as usize {
+            let index = (index + positions_index) % PREDICT_COUNT;
+            let position = self.positions[index];
+            canvas.draw_rectangle(position, self.color);
         }
     }
 }
@@ -254,7 +261,7 @@ pub struct Masses {
     maximal_orbit_time: f64,
     // Calculated by the masses. Also needed and copied to the canvas.
     maximal_orbit_radius: f64,
-    predict_count: f64,
+    pub predict_count: f64,
     predict_show: usize,
 }
 
@@ -314,7 +321,7 @@ impl Masses {
     }
 
     pub fn set_radius(&self, canvas: &mut Canvas) {
-        canvas.set_maximal_orbit_radius(self.maximal_orbit_radius);
+        canvas.draw_set_maximal_orbit_radius(self.maximal_orbit_radius);
     }
 
     pub fn get_predict_show(&self) -> usize {
@@ -378,7 +385,12 @@ impl Masses {
 
     pub fn draw(&self, canvas: &Canvas) {
         for mass in &self.masses {
-            mass.draw(canvas, self.positions_index, self.predict_show);
+            mass.draw(
+                canvas,
+                self.positions_index,
+                self.predict_show,
+                self.predict_count,
+            );
         }
     }
 }

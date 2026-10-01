@@ -10,7 +10,7 @@ pub fn set_scene(scene_id: i16) -> (Simulation, Masses, Ship, Canvas) {
     let mut simulation = Simulation::new(scene_id);
     let mut masses = Masses::new();
     let mut ship = Ship::default();
-    let mut canvas = Canvas::new(&conf());
+    let mut canvas = Canvas::draw_new(&conf());
 
     // some masses
     let sun_data = MassData::fixstar("sun", YELLOW, km(1.3914e6), mass_sol(1.));
