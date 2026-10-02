@@ -26,28 +26,14 @@ impl Canvas {
         }
     }
 
-    //pub fn get_predict_show(&self) -> usize {
-    //    self.predict_show
-    //}
-
     pub fn draw_set_maximal_orbit_radius(&mut self, val: f64) {
         self.maximal_orbit_radius = val;
     }
 
-    pub fn _draw_add_to_xy_view(&mut self, x: f64, y: f64) {
-        self.xy_view += VecSpace::new(x, y);
-    }
-
-    pub fn draw_set_x_view(&mut self, val: f64) {
-        self.xy_view.set_x(val);
-    }
-
-    pub fn draw_set_y_view(&mut self, val: f64) {
-        self.xy_view.set_y(val);
-    }
-
-    pub fn draw_set_z_view(&mut self, val: f64) {
-        self.z_view = val;
+    pub fn draw_set_view(&mut self, x: f64, y: f64, z: f64) {
+        self.xy_view.set_x(x);
+        self.xy_view.set_y(y);
+        self.z_view = z;
     }
 
     pub fn draw_circle(&self, position: VecSpace, diameter: f64, color: Color) {
@@ -78,7 +64,6 @@ impl Canvas {
         );
     }
 
-    // draw only contains "draw_grid"
     pub fn draw_grid(&mut self) {
         if self.z_view > self.z_grid {
             self.z_grid *= 2.0;
@@ -124,6 +109,8 @@ impl Canvas {
             }
         }
     }
+
+    ///////////////// local functions ///////////////////////
 
     /// calculate the pixel position from the metric simulated values
     /// by maximal orbit and screen and z-zoom faktor and screen center

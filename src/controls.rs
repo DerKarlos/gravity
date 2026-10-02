@@ -11,8 +11,10 @@ pub struct Controls {
     x_view: UpDown,
     y_view: UpDown,
     z_view: UpDown,
+    predict_show: UpDown,
     start_time: UpDown,
     burn_time: UpDown,
+    burn_acceleration: UpDown,
 }
 
 impl Controls {
@@ -21,8 +23,17 @@ impl Controls {
             x_view: UpDown::new("x_view", Formular::ADD, 0., -9999., 50., 1.), // value, min, step, min
             y_view: UpDown::new("y_view", Formular::ADD, 0., -9999., 50., 1.),
             z_view: UpDown::new("z_view", Formular::ADD, 1., 0.0001, 1., 1.),
-            start_time: UpDown::new("start", Formular::MUL, ship.burn_start, 0.0001, 1., 0.001),
-            burn_time: UpDown::new("burn", Formular::MUL, ship.burn_time, 0.0001, 1., 0.001),
+            predict_show: UpDown::new("p_show", Formular::ADD, 0., 0., 10., 1.),
+            start_time: UpDown::new("b_start", Formular::MUL, ship.burn_start, 0.0001, 1., 0.001),
+            burn_time: UpDown::new("b_time", Formular::MUL, ship.burn_time, 0.0001, 1., 0.001),
+            burn_acceleration: UpDown::new(
+                "power",
+                Formular::MUL,
+                ship.burn_acceleration,
+                0.0001,
+                1.,
+                0.001,
+            ),
         }
     }
 
@@ -34,10 +45,12 @@ impl Controls {
         delta_time: f64,
     ) {
         if is_key_down(KeyCode::Space) {
-            ship.mass.ship_accelerate_ahead(SIMULATION_STEP_TIME);
+            ship.mass
+                .ship_accelerate_ahead(SIMULATION_STEP_TIME * ship.burn_acceleration);
         }
         if is_key_down(KeyCode::Backspace) {
-            ship.mass.ship_accelerate_ahead(-SIMULATION_STEP_TIME)
+            ship.mass
+                .ship_accelerate_ahead(-SIMULATION_STEP_TIME * ship.burn_acceleration)
         }
 
         ship.set_start_time(
@@ -50,6 +63,12 @@ impl Controls {
                 .up_down(KeyCode::Up, KeyCode::Down, delta_time),
         );
 
+        ship.set_burn_acceleration(self.burn_acceleration.up_down(
+            KeyCode::RightBracket,
+            KeyCode::Apostrophe,
+            delta_time,
+        ));
+
         if is_key_down(KeyCode::O) {
             masses.mul_predict_count(1.003);
         }
@@ -57,19 +76,16 @@ impl Controls {
             masses.mul_predict_count(0.996);
         }
 
-        if is_key_down(KeyCode::I) {
-            masses.ramp_predict_show(true);
-        }
-        if is_key_down(KeyCode::K) {
-            masses.ramp_predict_show(false);
-        }
+        masses.set_predict_show(
+            self.predict_show
+                .up_down(KeyCode::I, KeyCode::K, delta_time),
+        );
 
-        canvas.draw_set_x_view(self.x_view.up_down(KeyCode::A, KeyCode::D, delta_time));
-        canvas.draw_set_y_view(self.y_view.up_down(KeyCode::W, KeyCode::S, delta_time));
-        canvas.draw_set_z_view(self.z_view.up_down(KeyCode::E, KeyCode::Q, delta_time));
-
-        // + RightBracket
-        // - Apostrophe
+        canvas.draw_set_view(
+            self.x_view.up_down(KeyCode::A, KeyCode::D, delta_time),
+            self.y_view.up_down(KeyCode::W, KeyCode::S, delta_time),
+            self.z_view.up_down(KeyCode::E, KeyCode::Q, delta_time),
+        );
     }
 }
 

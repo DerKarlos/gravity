@@ -11,7 +11,7 @@ use macroquad::prelude::*;
 use scene::*;
 use simulation::*;
 
-const SCENE: i16 = 3;
+const SCENE: i16 = 0;
 
 pub fn conf() -> Conf {
     Conf {

@@ -12,10 +12,6 @@ pub const PREDICT_COUNT: usize = 1000;
 
 pub const GRAVITY_CONSTANT_OF_EARTH: f64 = 6.67384e-11; // m^3/(kg*s^2)
 
-//b const MAX_GRAVITY_DISTANCE: f64 = 1e38; // [AE]
-
-// ------------------- Globals   -------------------
-
 // ------------------- SI UNIT VALUE KONVERT OPTIONS  -------------------
 
 // distances
@@ -262,7 +258,7 @@ pub struct Masses {
     // Calculated by the masses. Also needed and copied to the canvas.
     maximal_orbit_radius: f64,
     pub predict_count: f64,
-    predict_show: usize,
+    predict_show: f64,
 }
 
 impl Masses {
@@ -273,7 +269,7 @@ impl Masses {
             maximal_orbit_time: 1.,
             maximal_orbit_radius: 1.,
             predict_count: PREDICT_COUNT as f64,
-            predict_show: 0,
+            predict_show: 0.,
         }
     }
 
@@ -292,16 +288,8 @@ impl Masses {
         };
     }
 
-    pub fn ramp_predict_show(&mut self, up: bool) {
-        if up {
-            if self.predict_show < self.predict_count as usize {
-                self.predict_show += 1;
-            }
-        } else {
-            if self.predict_show > 0 {
-                self.predict_show -= 1;
-            }
-        }
+    pub fn set_predict_show(&mut self, val: f64) {
+        self.predict_show = val;
     }
 
     pub fn add_at_place(&mut self, data: &MassData) -> usize {
@@ -324,7 +312,7 @@ impl Masses {
         canvas.draw_set_maximal_orbit_radius(self.maximal_orbit_radius);
     }
 
-    pub fn get_predict_show(&self) -> usize {
+    pub fn get_predict_show(&self) -> f64 {
         self.predict_show
     }
     pub fn get_from_index(&mut self, index: usize) -> &mut Mass {
@@ -388,7 +376,7 @@ impl Masses {
             mass.draw(
                 canvas,
                 self.positions_index,
-                self.predict_show,
+                self.predict_show as usize,
                 self.predict_count,
             );
         }

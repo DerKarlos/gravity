@@ -9,6 +9,7 @@ pub struct Ship {
     pub mass: Mass,
     pub burn_start: f64, // in secounds
     pub burn_time: f64,  // in secounds
+    pub burn_acceleration: f64,
     position: VecSpace,
     velocity: VecSpace,
     rotation_start: f64,
@@ -22,6 +23,7 @@ impl Ship {
             mass: Mass::_zero(),
             burn_start: 0.0,
             burn_time: 0.0,
+            burn_acceleration: A_BURN,
             position: VecSpace::ZERO,
             velocity: VecSpace::ZERO,
             rotation_start: 0.,
@@ -62,7 +64,8 @@ impl Ship {
         let end = simulation.app_to_world_seconds(self.burn_start + self.burn_time);
 
         if seconds > start && seconds < end {
-            let mut burn = A_BURN;
+            println!("burn: {} / {}", seconds, start);
+            let mut burn = self.burn_acceleration;
             let delta = seconds - start;
             if delta < simulation.world_seconds_per_step {
                 burn = burn / simulation.world_seconds_per_step * delta;
@@ -108,8 +111,12 @@ impl Ship {
     }
 
     pub fn draw(&self, canvas: &Canvas, masses: &Masses) {
-        self.mass
-            .draw(canvas, 0, masses.get_predict_show(), masses.predict_count);
+        self.mass.draw(
+            canvas,
+            0,
+            masses.get_predict_show() as usize,
+            masses.predict_count,
+        );
     }
 
     pub fn _planing_start_time(&mut self, set: f64) {
@@ -123,6 +130,10 @@ impl Ship {
 
     pub fn set_burn_time(&mut self, set: f64) {
         self.burn_time = set;
+    }
+
+    pub fn set_burn_acceleration(&mut self, set: f64) {
+        self.burn_acceleration = set;
     }
 
     pub fn _planing_burn_time(&mut self, set: f64) {
