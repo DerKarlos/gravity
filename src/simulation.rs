@@ -72,7 +72,7 @@ impl Simulation {
         }
     }
 
-    pub fn draw_text(&mut self, masses: &Masses, canvas: &Canvas) {
-        canvas.draw_hud(&self.text, masses.get_position());
+    pub fn draw_text(&mut self, masses: &Masses) {
+        draw_hud(&self.text, masses.get_position());
     }
 }

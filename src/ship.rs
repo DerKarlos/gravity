@@ -1,4 +1,3 @@
-use crate::canvas::*;
 use crate::masses::*;
 use crate::simulation::*;
 use crate::vec_space::*;
@@ -110,13 +109,9 @@ impl Ship {
         self.mass.set_velocity(self.velocity);
     }
 
-    pub fn draw(&self, canvas: &Canvas, masses: &Masses) {
-        self.mass.draw(
-            canvas,
-            0,
-            masses.get_predict_show() as usize,
-            masses.predict_count,
-        );
+    pub fn draw(&self, masses: &Masses) {
+        self.mass
+            .draw(0, masses.get_predict_show() as usize, masses.predict_count);
     }
 
     pub fn _planing_start_time(&mut self, set: f64) {

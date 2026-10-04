@@ -37,13 +37,7 @@ impl Controls {
         }
     }
 
-    pub fn key_down(
-        &mut self,
-        ship: &mut Ship,
-        masses: &mut Masses,
-        canvas: &mut Canvas,
-        delta_time: f64,
-    ) {
+    pub fn key_down(&mut self, ship: &mut Ship, masses: &mut Masses, delta_time: f64) {
         if is_key_down(KeyCode::Space) {
             ship.mass
                 .ship_accelerate_ahead(SIMULATION_STEP_TIME * ship.burn_acceleration);
@@ -81,7 +75,7 @@ impl Controls {
                 .up_down(KeyCode::I, KeyCode::K, delta_time),
         );
 
-        canvas.draw_set_view(
+        draw_set_view(
             self.x_view.up_down(KeyCode::A, KeyCode::D, delta_time),
             self.y_view.up_down(KeyCode::W, KeyCode::S, delta_time),
             self.z_view.up_down(KeyCode::E, KeyCode::Q, delta_time),

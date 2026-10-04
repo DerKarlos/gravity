@@ -4,7 +4,7 @@
 use crate::canvas::*;
 use crate::simulation::*;
 use crate::vec_space::*;
-use macroquad::prelude::*;
+use macroquad::prelude::{BLACK, Color};
 
 //////////////////// Parameter ////////////////////
 
@@ -221,15 +221,9 @@ impl Mass {
     }
 
     // do it by thread_local ?
-    pub fn draw(
-        &self,
-        canvas: &Canvas,
-        positions_index: usize,
-        predict_show: usize,
-        predict_count: f64,
-    ) {
+    pub fn draw(&self, positions_index: usize, predict_show: usize, predict_count: f64) {
         let index = (positions_index + predict_show) % PREDICT_COUNT;
-        canvas.draw_circle(
+        draw_circle(
             self.positions[index],
             // visible size not real and less proportional to avoid big differences
             self.diameter.sqrt().sqrt(),
@@ -240,7 +234,7 @@ impl Mass {
         for index in 0..predict_count as usize {
             let index = (index + positions_index) % PREDICT_COUNT;
             let position = self.positions[index];
-            canvas.draw_rectangle(position, self.color);
+            draw_rectangle(position, self.color);
         }
     }
 }
@@ -308,8 +302,8 @@ impl Masses {
         self.masses.len() - 1
     }
 
-    pub fn set_radius(&self, canvas: &mut Canvas) {
-        canvas.draw_set_maximal_orbit_radius(self.maximal_orbit_radius);
+    pub fn set_radius(&self) {
+        draw_set_maximal_orbit_radius(self.maximal_orbit_radius);
     }
 
     pub fn get_predict_show(&self) -> f64 {
@@ -371,10 +365,9 @@ impl Masses {
         self.positions_index
     }
 
-    pub fn draw(&self, canvas: &Canvas) {
+    pub fn draw(&self) {
         for mass in &self.masses {
             mass.draw(
-                canvas,
                 self.positions_index,
                 self.predict_show as usize,
                 self.predict_count,

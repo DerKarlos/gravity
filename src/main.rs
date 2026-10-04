@@ -6,8 +6,12 @@ mod ship;
 mod simulation;
 mod vec_space;
 
+use canvas::draw_grid;
 use controls::*;
-use macroquad::prelude::*;
+
+use macroquad::prelude::{
+    BLACK, Conf, clear_background, get_char_pressed, get_frame_time, next_frame,
+};
 use scene::*;
 use simulation::*;
 
@@ -27,7 +31,7 @@ pub fn conf() -> Conf {
 async fn main() {
     // let (mut simulation, mut masses, mut ship, mut canvas) = set_scene(0);
 
-    let (mut simulation, mut masses, mut ship, mut canvas) = set_scene(SCENE);
+    let (mut simulation, mut masses, mut ship) = set_scene(SCENE);
 
     let mut controls = Controls::new(&ship);
 
@@ -45,25 +49,25 @@ async fn main() {
                 }
 
                 'r' => {
-                    (simulation, masses, ship, canvas) = set_scene(simulation.scene);
+                    (simulation, masses, ship) = set_scene(simulation.scene);
                 }
                 '0' => {
-                    (simulation, masses, ship, canvas) = set_scene(0);
+                    (simulation, masses, ship) = set_scene(0);
                 }
                 '1' => {
-                    (simulation, masses, ship, canvas) = set_scene(1);
+                    (simulation, masses, ship) = set_scene(1);
                 }
                 '2' => {
-                    (simulation, masses, ship, canvas) = set_scene(2);
+                    (simulation, masses, ship) = set_scene(2);
                 }
                 '3' => {
-                    (simulation, masses, ship, canvas) = set_scene(3);
+                    (simulation, masses, ship) = set_scene(3);
                 }
                 '4' => {
-                    (simulation, masses, ship, canvas) = set_scene(4);
+                    (simulation, masses, ship) = set_scene(4);
                 }
                 '5' => {
-                    (simulation, masses, ship, canvas) = set_scene(5);
+                    (simulation, masses, ship) = set_scene(5);
                 }
 
                 _ => (), // println!("Char not used: {:?}!", char),
@@ -72,17 +76,17 @@ async fn main() {
 
         clear_background(BLACK);
 
-        canvas.draw_grid(); // grid
-        simulation.draw_text(&masses, &canvas); // text
-        masses.draw(&canvas); // incl. prediction
-        ship.draw(&canvas, &masses);
+        draw_grid();
+        simulation.draw_text(&masses);
+        masses.draw(); // incl. prediction
+        ship.draw(&masses);
 
         // simulate next position to be drawn in the next loop
         let frame_delta_time: f64 = (get_frame_time() as f64).min(1.0);
         frame_delta_sum += frame_delta_time;
 
         // Simulate nothing or one ore some simulation steps
-        controls.key_down(&mut ship, &mut masses, &mut canvas, frame_delta_time);
+        controls.key_down(&mut ship, &mut masses, frame_delta_time);
 
         while frame_delta_sum > SIMULATION_STEP_TIME {
             frame_delta_sum -= SIMULATION_STEP_TIME;
@@ -91,8 +95,6 @@ async fn main() {
                 ship.move_one_step(&simulation, &masses);
                 // also sets index to next step!
                 simulation.simulate_one_step(&mut masses);
-
-                //ship.
             }
 
             // Predict ship with new masses index or new burn values etc.

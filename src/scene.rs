@@ -6,11 +6,12 @@ use crate::*;
 
 use macroquad::prelude::*;
 
-pub fn set_scene(scene_id: i16) -> (Simulation, Masses, Ship, Canvas) {
+pub fn set_scene(scene_id: i16) -> (Simulation, Masses, Ship) {
     let mut simulation = Simulation::new(scene_id);
     let mut masses = Masses::new();
     let mut ship = Ship::default();
-    let mut canvas = Canvas::draw_new(&conf());
+    let conf = &conf();
+    canvas_init(conf.window_width, conf.window_height);
 
     // some masses
     let sun_data = MassData::fixstar("sun", YELLOW, km(1.3914e6), mass_sol(1.));
@@ -78,11 +79,11 @@ pub fn set_scene(scene_id: i16) -> (Simulation, Masses, Ship, Canvas) {
 
     // All masses are there, calculate the simulation time by the maximal orbit time
     simulation.set_orbit_time(&masses);
-    masses.set_radius(&mut canvas);
+    masses.set_radius();
 
     // initially simulate all the future positinos
     masses.predict_positions(&mut simulation);
     ship.predict_positions(&simulation, &masses);
 
-    (simulation, masses, ship, canvas)
+    (simulation, masses, ship)
 }
