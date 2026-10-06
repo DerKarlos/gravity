@@ -1,3 +1,9 @@
+//! Todo
+//!
+//! There are two "times" in this code:
+//! - The simulated seconds. The symbol contains "seconds", may be "simulated_seconds"
+//! - The time, the app is running. The symbol contains "time", may be "ui-time"
+
 mod canvas;
 mod controls;
 mod masses;
@@ -15,14 +21,11 @@ use macroquad::prelude::{
 use scene::*;
 use simulation::*;
 
-const SCENE: i16 = 0;
+const SCENE: i16 = 6;
 
 pub fn conf() -> Conf {
     Conf {
-        window_title: String::from("Gravity Sim Game"),
-        window_width: 1000,
-        window_height: 680,
-        window_resizable: false,
+        window_title: String::from("Gravity Sim Experience"),
         ..Default::default()
     }
 }
@@ -35,7 +38,7 @@ async fn main() {
 
     let mut controls = Controls::new(&ship);
 
-    let mut frame_delta_sum = 0.0;
+    let mut frame_seconds_left = 0.0;
 
     loop {
         if let Some(char) = get_char_pressed() {
@@ -48,28 +51,16 @@ async fn main() {
                     //println!(  "planing_mode: {} {}",simulation.run_mode, simulation.simulated_world_seconds );
                 }
 
-                'r' => {
-                    (simulation, masses, ship) = set_scene(simulation.scene);
+                '0'..='9' | 'r' => {
+                    let id = if char == 'r' {
+                        simulation.scene
+                    } else {
+                        char as i16 - 48
+                    };
+                    println!("scene = {}", id);
+                    (simulation, masses, ship) = set_scene(id);
+                    controls = Controls::new(&ship);
                 }
-                '0' => {
-                    (simulation, masses, ship) = set_scene(0);
-                }
-                '1' => {
-                    (simulation, masses, ship) = set_scene(1);
-                }
-                '2' => {
-                    (simulation, masses, ship) = set_scene(2);
-                }
-                '3' => {
-                    (simulation, masses, ship) = set_scene(3);
-                }
-                '4' => {
-                    (simulation, masses, ship) = set_scene(4);
-                }
-                '5' => {
-                    (simulation, masses, ship) = set_scene(5);
-                }
-
                 _ => (), // println!("Char not used: {:?}!", char),
             }
         }
@@ -82,14 +73,14 @@ async fn main() {
         ship.draw(&masses);
 
         // simulate next position to be drawn in the next loop
-        let frame_delta_time: f64 = (get_frame_time() as f64).min(1.0);
-        frame_delta_sum += frame_delta_time;
+        let frame_seconds: f64 = (get_frame_time() as f64).min(1.0);
+        frame_seconds_left += frame_seconds;
 
         // Simulate nothing or one ore some simulation steps
-        controls.key_down(&mut ship, &mut masses, frame_delta_time);
+        controls.key_down(&mut ship, &mut masses, frame_seconds);
 
-        while frame_delta_sum > SIMULATION_STEP_TIME {
-            frame_delta_sum -= SIMULATION_STEP_TIME;
+        while frame_seconds_left > SIMULATION_STEP_SECONDS {
+            frame_seconds_left -= SIMULATION_STEP_SECONDS;
 
             if simulation.run_mode {
                 ship.move_one_step(&simulation, &masses);

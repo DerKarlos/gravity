@@ -1,17 +1,14 @@
-use crate::canvas::*;
+//use crate::canvas::draw_set_view;
 use crate::masses::*;
 use crate::ship::*;
 use crate::simulation::*;
-use crate::*;
-
+// for colours
 use macroquad::prelude::*;
 
 pub fn set_scene(scene_id: i16) -> (Simulation, Masses, Ship) {
     let mut simulation = Simulation::new(scene_id);
     let mut masses = Masses::new();
     let mut ship = Ship::default();
-    let conf = &conf();
-    canvas_init(conf.window_width, conf.window_height);
 
     // some masses
     let sun_data = MassData::fixstar("sun", YELLOW, km(1.3914e6), mass_sol(1.));
@@ -23,23 +20,39 @@ pub fn set_scene(scene_id: i16) -> (Simulation, Masses, Ship) {
     // more but 0.005 AE radius makes the orbit insable.
     let luna_data = MassData::orbiter("luna", RED, km(3476.), kg(7.349e22), km(370171.));
     let _jupiter_d = MassData::orbiter("jupiter", GREEN, km(142984.0), kg(1.899e27), au(25e3));
-    let comet_data = MassData::ellipse("comet", GRAY, km(500.0), kg(1e6), au(1.3), 0.4);
+    let comet_data = MassData::ellipse("comet", DARKGRAY, km(500.0), kg(1e6), au(1.3), 0.4);
     let ship_data = MassData::orbiter("ship", WHITE, 10.0, 0.0, km(80000.)); // the real 300km are not visible
 
     match scene_id {
         1 => {
-            simulation.set_text("Sun, Earth");
-            let sun = masses.add_at_place(&sun_data);
-            masses.add_in_orbit(&earth_data, sun);
-        }
-
-        2 => {
             simulation.set_text("double star");
             let sun = masses.add_at_place(&sun_data);
             masses.add_in_orbit(&sun_dat2, sun);
         }
 
+        2 => {
+            simulation.set_text("Sun and two planets");
+            let sun = masses.add_at_place(&sun_data);
+            masses.add_in_orbit(&big_dat1, sun);
+            masses.add_in_orbit(&big_dat2, sun);
+            simulation.run_mode = false;
+        }
+
         3 => {
+            simulation.set_text("Sun, Earth");
+            let sun = masses.add_at_place(&sun_data);
+            masses.add_in_orbit(&earth_data, sun);
+        }
+
+        4 => {
+            simulation.set_text("Sun, Earth & Luna +");
+            let sun = masses.add_at_place(&sun_data);
+            masses.add_in_orbit(&comet_data, sun);
+            let earth = masses.add_in_orbit(&earth_data, sun);
+            masses.add_in_orbit(&luna_data, earth);
+        }
+
+        5 => {
             simulation.set_text("Earth & Luna & Ship");
             simulation.set_seconds_per_orbit(60.);
             let earth = masses.add_at_place(&earth_data);
@@ -48,42 +61,47 @@ pub fn set_scene(scene_id: i16) -> (Simulation, Masses, Ship) {
             //ip.set_in_orbit(&mut masses, &ship_data.mul_radius(0.1), earth);
         }
 
-        4 => {
-            simulation.set_text("Sun, Earth & Luna +");
-            let sun = masses.add_at_place(&sun_data);
-            let earth = masses.add_in_orbit(&earth_data, sun);
-            masses.add_in_orbit(&luna_data, earth);
-            masses.add_in_orbit(&comet_data, sun);
-        }
-
-        5 => {
-            simulation.set_text("Sun, Earth+Earth");
-            let sun = masses.add_at_place(&sun_data);
-            masses.add_in_orbit(&big_dat1, sun);
-            masses.add_in_orbit(&big_dat2, sun);
-            simulation.run_mode = false;
-        }
-
-        _ => {
-            simulation.set_text("Test:moon 8 loop");
+        6 => {
+            simulation.set_text("Moon 8 loop");
             let earth = masses.add_at_place(&earth_data);
-            let luna = masses.add_in_orbit(&luna_data.mul_radius(0.1), earth);
+            let _luna = masses.add_in_orbit(&luna_data.mul_radius(0.1), earth);
             ship.set_in_orbit(&mut masses, &ship_data.mul_radius(0.1), earth);
             ship.set_burn(0.30583935592786876, 1.4711292722479974); // Into Luna orbit
             ship.set_burn(0.30583935592786876, 1.48); // realy an 8 curse?
 
             simulation.run_mode = false;
-            ship.set_rotation(0., earth, luna);
+            //???ship.set_rotation(0., earth, luna);
+        }
+
+        // Idee: Flyby führt zu langsammer/schneller/andere Richtung/bis zu 180 grad umkehr
+        //
+        7 => {
+            // https://en.wikipedia.org/wiki/Lagrange_point
+            simulation.set_text("Lagrange 4/5");
+            let sun = masses.add_at_place(&sun_data);
+            let earth = masses.add_in_orbit(&earth_data, sun);
+            ship.set_in_orbit(&mut masses, &ship_data.set_radius(300.), earth);
+            ship.set_burn(0.30583935592786876, 1.4711292722479974); // Into Luna orbit
+            ship.set_burn(0.30583935592786876, 1.48); // realy an 8 curse?
+
+            simulation.run_mode = false;
+        }
+
+        _ => {
+            simulation.set_text("Scene NOT DEFINED");
         }
     };
 
-    // All masses are there, calculate the simulation time by the maximal orbit time
-    simulation.set_orbit_time(&masses);
+    // All masses are there, calculate the simulation seconds by the maximal ui-orbit-time
+    simulation.set_orbit_seconds(&masses);
     masses.set_radius();
 
     // initially simulate all the future positinos
     masses.predict_positions(&mut simulation);
     ship.predict_positions(&simulation, &masses);
+
+    //???controls = Controls::new(&ship);
+    //draw_set_view(0.95, 0.95, 1.);
 
     (simulation, masses, ship)
 }

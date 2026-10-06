@@ -85,6 +85,11 @@ impl<'a> MassData<'a> {
         ret.orbit_radius *= fakt;
         ret
     }
+    pub fn set_radius(&self, val: f64) -> Self {
+        let mut ret = *self; // = self.clone();
+        ret.orbit_radius = val;
+        ret
+    }
 }
 
 // =================== MASS STRUCT/CLASS ===================
@@ -94,7 +99,7 @@ pub struct Mass {
     _name: String, // why not &'static str ???
     mass: f64,
     diameter: f64,
-    orbit_time: f64,
+    orbit_seconds: f64,
     color: Color,
     acceleration: VecSpace,
     velocity: VecSpace,
@@ -108,7 +113,7 @@ impl Mass {
             _name: String::from("ZERO"),
             mass: 0.,
             diameter: 0.,
-            orbit_time: 0.,
+            orbit_seconds: 0.,
             color: BLACK,
             acceleration: VecSpace::ZERO,
             velocity: VecSpace::ZERO,
@@ -119,30 +124,24 @@ impl Mass {
 
     // pub for new ship
     pub fn new(data: &MassData, orbits: Option<&mut Mass>) -> Mass {
-        // ignore radius if mass is not in orbit
-        let position = if orbits.is_some() {
-            VecSpace::new(data.orbit_radius, 0.0)
-        } else {
-            VecSpace::ZERO
-        };
-
         let mut mass = Mass {
             _name: data.name.to_string(),
             color: data.color,
             diameter: data.diameter,
-            orbit_time: 0.,
+            orbit_seconds: 0.,
             mass: data.mass,
-            position,
+            position: VecSpace::ZERO,
             velocity: VecSpace::ZERO,
             acceleration: VecSpace::ZERO,
             positions: [VecSpace::ZERO; PREDICT_COUNT],
         };
 
         if let Some(orbited_mass) = orbits {
-            mass.orbit_time = Self::set_v_orbit(&mut mass, orbited_mass, data.excentricity);
-        }
+            mass.position += VecSpace::new(data.orbit_radius, 0.); // + orbited_mass.position; done by set_v_orbit
+            mass.orbit_seconds = Self::set_v_orbit(&mut mass, orbited_mass, data.excentricity);
+        };
 
-        mass.positions[0] = position;
+        mass.positions[0] = mass.position;
         mass
     }
 
@@ -177,7 +176,7 @@ impl Mass {
         other.velocity += VecSpace::new(0., velocity / both_masses * mass.mass * signum);
         // ??? Could we also move the other mass to get the common rotation point in the center?
 
-        // calculate the real time for one orbital period in seconds
+        // calculate the real simulated seconds for one orbital period in seconds
         2.0 * std::f64::consts::PI
             * (radius.powi(3) / (GRAVITY_CONSTANT_OF_EARTH * (mass.mass + other.mass))).sqrt()
     }
@@ -248,7 +247,7 @@ pub struct Masses {
     // At this index: draw oldest position, write new position, increment after write
     positions_index: usize,
     // Default 10s or set by the actual scene
-    maximal_orbit_time: f64,
+    maximal_orbit_seconds: f64,
     // Calculated by the masses. Also needed and copied to the canvas.
     maximal_orbit_radius: f64,
     pub predict_count: f64,
@@ -260,7 +259,7 @@ impl Masses {
         Masses {
             masses: Vec::new(),
             positions_index: 0,
-            maximal_orbit_time: 1.,
+            maximal_orbit_seconds: 1.,
             maximal_orbit_radius: 1.,
             predict_count: PREDICT_COUNT as f64,
             predict_show: 0.,
@@ -271,8 +270,8 @@ impl Masses {
         self.positions_index
     }
 
-    pub fn maximal_orbit_time(&self) -> f64 {
-        self.maximal_orbit_time
+    pub fn maximal_orbit_seconds(&self) -> f64 {
+        self.maximal_orbit_seconds
     }
 
     pub fn mul_predict_count(&mut self, fakt: f64) {
@@ -297,7 +296,7 @@ impl Masses {
         self.maximal_orbit_radius = data.orbit_radius.max(self.maximal_orbit_radius);
         //println!("max orbit: {}", self.maximal_orbit);
         let mass = Mass::new(data, Some(orbits));
-        self.maximal_orbit_time = self.maximal_orbit_time.max(mass.orbit_time);
+        self.maximal_orbit_seconds = self.maximal_orbit_seconds.max(mass.orbit_seconds);
         self.masses.push(mass);
         self.masses.len() - 1
     }
@@ -344,14 +343,14 @@ impl Masses {
 
     // initially simulate all the future positinos
     pub fn predict_positions(&mut self, simulation: &mut Simulation) {
-        // All masses are there, calculate the simulation time by the maximal orbit time
-        simulation.world_seconds_per_step = self.maximal_orbit_time()
+        // All masses are there, calculate the simulation seconds by the maximal orbit-ui-time
+        simulation.simulated_seconds_per_step = self.maximal_orbit_seconds()
             / SIMULATION_STEPS_PER_APP_SECOND
-            / simulation.app_seconds_per_orbit;
+            / simulation.ui_time_per_orbit;
 
         for _ in 1..PREDICT_COUNT {
             self.inc_position();
-            self.drag_and_move(simulation.world_seconds_per_step);
+            self.drag_and_move(simulation.simulated_seconds_per_step);
         }
         self.inc_position(); // wrap to 0
     }

@@ -3,11 +3,10 @@
 
 use crate::canvas::*;
 use crate::masses::*;
-use macroquad::prelude::*;
 
 // About like the framerate in Hz, but will be checked and repeated if needed
 pub const SIMULATION_STEPS_PER_APP_SECOND: f64 = 50.;
-pub const SIMULATION_STEP_TIME: f64 = 1. / SIMULATION_STEPS_PER_APP_SECOND;
+pub const SIMULATION_STEP_SECONDS: f64 = 1. / SIMULATION_STEPS_PER_APP_SECOND;
 
 // ------------------- MASSES STRUCT/CLASS -------------------
 
@@ -15,9 +14,9 @@ pub struct Simulation {
     // todo: no pub!!!!
     pub scene: i16,
     text: String,
-    pub app_seconds_per_orbit: f64,
-    pub simulated_world_seconds: f64,
-    pub world_seconds_per_step: f64, // rename all step to frame ???
+    pub ui_time_per_orbit: f64,
+    pub simulated_seconds: f64,
+    pub simulated_seconds_per_step: f64, // rename all step to frame ? No, a frame may execute multible frames
     pub run_mode: bool,
 }
 
@@ -26,39 +25,39 @@ impl Simulation {
         Simulation {
             scene,
             text: String::new(),
-            app_seconds_per_orbit: 10., // default, may be changed by the scene
-            simulated_world_seconds: 0.0,
-            world_seconds_per_step: 0.0,
+            ui_time_per_orbit: 10., // The slowest orbit takes X seconds in the UI. Default, may be changed by the scene
+            simulated_seconds: 0.0,
+            simulated_seconds_per_step: 0.0,
             run_mode: true,
         }
     }
 
     pub fn set_seconds_per_orbit(&mut self, val: f64) {
-        self.app_seconds_per_orbit = val;
+        self.ui_time_per_orbit = val;
     }
     pub fn set_text(&mut self, text: &str) {
         self.text = text.to_string();
     }
 
-    pub fn app_to_world_seconds(&self, time: f64) -> f64 {
+    pub fn app_to_world_seconds(&self, seconds: f64) -> f64 {
         let world_seconds_per_app_second =
-            self.world_seconds_per_step * SIMULATION_STEPS_PER_APP_SECOND;
-        time * world_seconds_per_app_second
+            self.simulated_seconds_per_step * SIMULATION_STEPS_PER_APP_SECOND;
+        seconds * world_seconds_per_app_second
     }
 
-    pub fn set_orbit_time(&mut self, masses: &Masses) {
-        // All masses are there, calculate the simulation time by the maximal orbit time
-        self.world_seconds_per_step = masses.maximal_orbit_time()
+    pub fn set_orbit_seconds(&mut self, masses: &Masses) {
+        // All masses are there, calculate the simulation seconds by the maximal ui-orbit-time
+        self.simulated_seconds_per_step = masses.maximal_orbit_seconds()
             / SIMULATION_STEPS_PER_APP_SECOND
-            / self.app_seconds_per_orbit;
+            / self.ui_time_per_orbit;
     }
 
     // initially simulate all the future positinos
 
     pub fn simulate_one_step(&mut self, masses: &mut Masses) {
-        masses.drag_and_move(self.world_seconds_per_step);
+        masses.drag_and_move(self.simulated_seconds_per_step);
         masses.inc_position();
-        self.simulated_world_seconds += self.world_seconds_per_step;
+        self.simulated_seconds += self.simulated_seconds_per_step;
     }
 
     pub fn toggle_run_mode(&mut self) {

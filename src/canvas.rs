@@ -5,36 +5,20 @@ use macroquad::prelude::*;
 use std::sync::{Mutex, OnceLock};
 
 pub struct Canvas {
-    window_width: i32,
-    window_height: i32,
     xy_view: VecSpace,
     z_view: f64,
     z_grid: f64,
     maximal_orbit_radius: f64,
-    max_pixel_from_center: i32,
 }
 
 impl Canvas {
     pub fn new() -> Canvas {
-        const DEF_WIDTH: i32 = 400;
-        const DEF_HIGHT: i32 = 300;
         Canvas {
-            window_width: DEF_WIDTH,
-            window_height: DEF_HIGHT,
             xy_view: VecSpace::ZERO,
-            z_view: 0.95,
-            z_grid: 0.95,
+            z_view: 1.,
+            z_grid: 1.,
             maximal_orbit_radius: 1.,
-            // Die kleinere Fenster-Ausdehnung zählt als normaler darstellbar Bildpunktebereich
-            // The smallest extend of the window counts as visible screen range
-            max_pixel_from_center: DEF_WIDTH.min(DEF_HIGHT) / 2,
         }
-    }
-
-    fn init(&mut self, window_width: i32, window_height: i32) {
-        self.window_width = window_width;
-        self.window_height = window_height;
-        self.max_pixel_from_center = self.window_height.min(self.window_width) / 2;
     }
 
     pub fn set_view(&mut self, x: f64, y: f64, z: f64) {
@@ -127,10 +111,17 @@ impl Canvas {
     /// by maximal orbit and screen-view values
     fn to_pixel(&self, position: VecSpace) -> (f32, f32) {
         let window_center: VecSpace = VecSpace::new(
-            self.window_width as f64 / 2.,
-            self.window_height as f64 / 2.,
+            screen_width() as f64 / 2.,
+            screen_height() as f64 / 2.,
+            //self.window_width as f64 / 2.,
+            //self.window_height as f64 / 2.,
         );
-        let scale = self.z_view / self.maximal_orbit_radius * self.max_pixel_from_center as f64;
+
+        // Die kleinere Fenster-Ausdehnung zählt als normaler darstellbar Bildpunktebereich
+        // The smallest extend of the window counts as visible screen range
+        let max_pixel_from_center = screen_width().min(screen_height()) as i32 / 2;
+
+        let scale = self.z_view / self.maximal_orbit_radius * max_pixel_from_center as f64;
 
         // Scale by view, divide by scene multiply by screen, add screen center
         let screen_pos = position * scale + self.xy_view + window_center;
@@ -163,11 +154,6 @@ static CANVAS: OnceLock<Mutex<Canvas>> = OnceLock::new();
 
 fn canvas() -> &'static Mutex<Canvas> {
     CANVAS.get_or_init(|| Mutex::new(Canvas::new()))
-}
-
-pub fn canvas_init(window_width: i32, window_height: i32) {
-    let mut canvas = canvas().lock().unwrap();
-    canvas.init(window_width, window_height);
 }
 
 pub fn draw_circle(position: VecSpace, diameter: f64, color: Color) {
