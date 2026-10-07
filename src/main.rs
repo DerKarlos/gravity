@@ -15,22 +15,13 @@ mod vec_space;
 use canvas::draw_grid;
 use controls::*;
 
-use macroquad::prelude::{
-    BLACK, Conf, clear_background, get_char_pressed, get_frame_time, next_frame,
-};
+use macroquad::prelude::{BLACK, clear_background, get_char_pressed, get_frame_time, next_frame};
 use scene::*;
 use simulation::*;
 
 const SCENE: i16 = 6;
 
-pub fn conf() -> Conf {
-    Conf {
-        window_title: String::from("Gravity Sim Experience"),
-        ..Default::default()
-    }
-}
-
-#[macroquad::main(conf)]
+#[macroquad::main("Gravity Sim Experience")]
 async fn main() {
     // let (mut simulation, mut masses, mut ship, mut canvas) = set_scene(0);
 

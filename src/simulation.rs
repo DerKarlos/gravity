@@ -39,7 +39,7 @@ impl Simulation {
         self.text = text.to_string();
     }
 
-    pub fn app_to_world_seconds(&self, seconds: f64) -> f64 {
+    pub fn _app_to_world_seconds(&self, seconds: f64) -> f64 {
         let world_seconds_per_app_second =
             self.simulated_seconds_per_step * SIMULATION_STEPS_PER_APP_SECOND;
         seconds * world_seconds_per_app_second
@@ -66,8 +66,8 @@ impl Simulation {
             // ???
             //let x = 1e4;
             // let y = 1e3;
-            // ??? self.start_time = self.simulated_seconds + y * 2.;
-            // ??? self.burn_time = y;
+            // ??? self.start_seconds = self.simulated_seconds + y * 2.;
+            // ??? self.burn_seconds = y;
         }
     }
 

@@ -5,15 +5,16 @@ use crate::simulation::*;
 // for keyboard
 use macroquad::prelude::*;
 
-const KEY_BREAK_TIME: f64 = 0.33; // ui-time
+// ui-time gap to assume, the key was not pressed any more
+const KEY_NOT_PRESSED_TIME: f64 = 0.33;
 
 pub struct Controls {
     x_view: UpDown,
     y_view: UpDown,
     z_view: UpDown,
     predict_show: UpDown,
-    start_time: UpDown, // ??? change to name _seconds and fuction
-    burn_time: UpDown,
+    burn_start: UpDown, // ??? change to name _seconds and fuction
+    burn_seconds: UpDown,
     burn_acceleration: UpDown,
 }
 
@@ -24,8 +25,15 @@ impl Controls {
             y_view: UpDown::new("y_view", Formular::Add, 0., -9999., 50., 1.),
             z_view: UpDown::new("z_view", Formular::Add, 0.95, 0.0001, 1., 1.),
             predict_show: UpDown::new("p_show", Formular::Add, 0., 0., 10., 1.),
-            start_time: UpDown::new("b_start", Formular::Mul, ship.burn_start, 0.0001, 1., 0.001),
-            burn_time: UpDown::new("b_time", Formular::Mul, ship.burn_time, 0.0000, 1., 0.001), // min = 0 = off
+            burn_start: UpDown::new("b_start", Formular::Mul, ship.burn_start, 0.0001, 1., 0.001),
+            burn_seconds: UpDown::new(
+                "b_secs",
+                Formular::Mul,
+                ship.burn_seconds,
+                0.0000,
+                1.,
+                0.001,
+            ), // min = 0 = off
             burn_acceleration: UpDown::new(
                 "power",
                 Formular::Mul,
@@ -47,13 +55,13 @@ impl Controls {
                 .ship_accelerate_ahead(-SIMULATION_STEP_SECONDS * ship.burn_acceleration)
         }
 
-        ship.set_start_time(
-            self.start_time
+        ship.set_start_seconds(
+            self.burn_start
                 .up_down(KeyCode::Right, KeyCode::Left, delta_time), // ui-time
         );
 
-        ship.set_burn_time(
-            self.burn_time
+        ship.set_burn_seconds(
+            self.burn_seconds
                 .up_down(KeyCode::Up, KeyCode::Down, delta_time),
         );
 
@@ -144,7 +152,7 @@ impl UpDown {
 
     fn up(&mut self, delta_time: f64) -> f64 {
         let time = get_time();
-        if time - self.last_time > KEY_BREAK_TIME {
+        if time - self.last_time > KEY_NOT_PRESSED_TIME {
             self.step_down();
         }
         self.last_time = time;
@@ -169,7 +177,7 @@ impl UpDown {
     fn down(&mut self, delta_time: f64) -> f64 {
         let last_step = self.step;
         let time = get_time();
-        if time - self.last_time > KEY_BREAK_TIME {
+        if time - self.last_time > KEY_NOT_PRESSED_TIME {
             self.step_down();
         }
         self.last_time = time;

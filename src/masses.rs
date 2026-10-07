@@ -343,7 +343,7 @@ impl Masses {
 
     // initially simulate all the future positinos
     pub fn predict_positions(&mut self, simulation: &mut Simulation) {
-        // All masses are there, calculate the simulation seconds by the maximal orbit-ui-time
+        // All masses are there, calculate the simulation seconds by the maximal orbit time (as ui-time!)
         simulation.simulated_seconds_per_step = self.maximal_orbit_seconds()
             / SIMULATION_STEPS_PER_APP_SECOND
             / simulation.ui_time_per_orbit;

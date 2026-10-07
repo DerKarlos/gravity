@@ -62,13 +62,11 @@ pub fn set_scene(scene_id: i16) -> (Simulation, Masses, Ship) {
         }
 
         6 => {
-            simulation.set_text("Moon 8 loop");
+            simulation.set_text("Moon 8 loop (realy?)");
             let earth = masses.add_at_place(&earth_data);
             let _luna = masses.add_in_orbit(&luna_data.mul_radius(0.1), earth);
             ship.set_in_orbit(&mut masses, &ship_data.mul_radius(0.1), earth);
-            ship.set_burn(0.30583935592786876, 1.4711292722479974); // Into Luna orbit
-            ship.set_burn(0.30583935592786876, 1.48); // realy an 8 curse?
-
+            ship.set_burn(2154.2760453997807, 10424.84718004583);
             simulation.run_mode = false;
             //???ship.set_rotation(0., earth, luna);
         }
@@ -81,8 +79,7 @@ pub fn set_scene(scene_id: i16) -> (Simulation, Masses, Ship) {
             let sun = masses.add_at_place(&sun_data);
             let earth = masses.add_in_orbit(&earth_data, sun);
             ship.set_in_orbit(&mut masses, &ship_data.set_radius(300.), earth);
-            ship.set_burn(0.30583935592786876, 1.4711292722479974); // Into Luna orbit
-            ship.set_burn(0.30583935592786876, 1.48); // realy an 8 curse?
+            ship.set_burn(2154.2760453997807, 10424.84718004583);
 
             simulation.run_mode = false;
         }

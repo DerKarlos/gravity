@@ -6,8 +6,8 @@ const A_BURN: f64 = 0.3;
 
 pub struct Ship {
     pub mass: Mass,
-    pub burn_start: f64, // in secounds
-    pub burn_time: f64,  // in secounds
+    pub burn_start: f64,
+    pub burn_seconds: f64,
     pub burn_acceleration: f64,
     position: VecSpace,
     velocity: VecSpace,
@@ -21,7 +21,7 @@ impl Ship {
         Ship {
             mass: Mass::_zero(),
             burn_start: 0.0,
-            burn_time: 0.0,
+            burn_seconds: 0.0,
             burn_acceleration: A_BURN,
             position: VecSpace::ZERO,
             velocity: VecSpace::ZERO,
@@ -38,8 +38,8 @@ impl Ship {
     }
 
     pub fn set_burn(&mut self, start: f64, seconds: f64) {
-        self.burn_start = start; // s
-        self.burn_time = seconds; //   s
+        self.burn_start = start;
+        self.burn_seconds = seconds;
     }
 
     pub fn set_in_orbit(&mut self, masses: &mut Masses, data: &MassData, orbits: usize) {
@@ -60,9 +60,10 @@ impl Ship {
     }
 
     fn burn(&mut self, simulation: &Simulation, seconds: f64) {
-        let start = simulation.app_to_world_seconds(self.burn_start);
-        let end = simulation.app_to_world_seconds(self.burn_start + self.burn_time);
+        let start = self.burn_start;
+        let end = self.burn_start + self.burn_seconds;
 
+        println!("burn: {} / {}", start, seconds);
         if seconds > start && seconds < end {
             let mut burn = self.burn_acceleration;
             let delta = seconds - start;
@@ -114,26 +115,15 @@ impl Ship {
             .draw(0, masses.get_predict_show() as usize, masses.predict_count);
     }
 
-    pub fn _planing_start_time(&mut self, set: f64) {
-        //???
-        self.burn_start += set * 0.001;
-        println!("start_time {}", self.burn_start);
-    }
-
-    pub fn set_start_time(&mut self, set: f64) {
+    pub fn set_start_seconds(&mut self, set: f64) {
         self.burn_start = set;
     }
 
-    pub fn set_burn_time(&mut self, set: f64) {
-        self.burn_time = set;
+    pub fn set_burn_seconds(&mut self, set: f64) {
+        self.burn_seconds = set;
     }
 
     pub fn set_burn_acceleration(&mut self, set: f64) {
         self.burn_acceleration = set;
-    }
-
-    pub fn _planing_burn_time(&mut self, set: f64) {
-        self.burn_time *= 1. + set * 0.003;
-        println!("burn_time {}", self.burn_time);
     }
 }
