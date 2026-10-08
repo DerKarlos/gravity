@@ -12,12 +12,12 @@ pub const SIMULATION_STEP_SECONDS: f64 = 1. / SIMULATION_STEPS_PER_APP_SECOND;
 
 pub struct Simulation {
     // todo: no pub!!!!
-    pub scene: i16,
+    scene: i16,
     text: String,
     pub ui_time_per_orbit: f64,
     pub simulated_seconds: f64,
     pub simulated_seconds_per_step: f64, // rename all step to frame ? No, a frame may execute multible frames
-    pub run_mode: bool,
+    run_mode: bool,
 }
 
 impl Simulation {
@@ -32,17 +32,20 @@ impl Simulation {
         }
     }
 
+    pub fn scene(&self) -> i16 {
+        self.scene
+    }
+    pub fn run_mode(&self) -> bool {
+        self.run_mode
+    }
+    pub fn set_run_mode(&mut self, val: bool) {
+        self.run_mode = val;
+    }
     pub fn set_seconds_per_orbit(&mut self, val: f64) {
         self.ui_time_per_orbit = val;
     }
     pub fn set_text(&mut self, text: &str) {
         self.text = text.to_string();
-    }
-
-    pub fn _app_to_world_seconds(&self, seconds: f64) -> f64 {
-        let world_seconds_per_app_second =
-            self.simulated_seconds_per_step * SIMULATION_STEPS_PER_APP_SECOND;
-        seconds * world_seconds_per_app_second
     }
 
     pub fn set_orbit_seconds(&mut self, masses: &Masses) {
@@ -62,16 +65,9 @@ impl Simulation {
 
     pub fn toggle_run_mode(&mut self) {
         self.run_mode = !self.run_mode;
-        if !self.run_mode {
-            // ???
-            //let x = 1e4;
-            // let y = 1e3;
-            // ??? self.start_seconds = self.simulated_seconds + y * 2.;
-            // ??? self.burn_seconds = y;
-        }
     }
 
     pub fn draw_text(&mut self, masses: &Masses) {
-        draw_hud(&self.text, masses.get_position());
+        draw_hud(&self.text, masses.position());
     }
 }

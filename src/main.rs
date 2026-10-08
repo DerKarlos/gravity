@@ -19,7 +19,7 @@ use macroquad::prelude::{BLACK, clear_background, get_char_pressed, get_frame_ti
 use scene::*;
 use simulation::*;
 
-const SCENE: i16 = 6;
+const SCENE: i16 = 7;
 
 #[macroquad::main("Gravity Sim Experience")]
 async fn main() {
@@ -44,7 +44,7 @@ async fn main() {
 
                 '0'..='9' | 'r' => {
                     let id = if char == 'r' {
-                        simulation.scene
+                        simulation.scene()
                     } else {
                         char as i16 - 48
                     };
@@ -60,7 +60,7 @@ async fn main() {
 
         draw_grid();
         simulation.draw_text(&masses);
-        masses.draw(); // incl. prediction
+        masses.draw_masses(); // incl. prediction
         ship.draw(&masses);
 
         // simulate next position to be drawn in the next loop
@@ -73,7 +73,7 @@ async fn main() {
         while frame_seconds_left > SIMULATION_STEP_SECONDS {
             frame_seconds_left -= SIMULATION_STEP_SECONDS;
 
-            if simulation.run_mode {
+            if simulation.run_mode() {
                 ship.move_one_step(&simulation, &masses);
                 // also sets index to next step!
                 simulation.simulate_one_step(&mut masses);

@@ -27,7 +27,8 @@ pub fn set_scene(scene_id: i16) -> (Simulation, Masses, Ship) {
         1 => {
             simulation.set_text("double star");
             let sun = masses.add_at_place(&sun_data);
-            masses.add_in_orbit(&sun_dat2, sun);
+            let su2 = masses.add_in_orbit(&sun_dat2, sun);
+            ship.set_in_orbit(&mut masses, &ship_data.mul_radius(200.), su2);
         }
 
         2 => {
@@ -35,7 +36,7 @@ pub fn set_scene(scene_id: i16) -> (Simulation, Masses, Ship) {
             let sun = masses.add_at_place(&sun_data);
             masses.add_in_orbit(&big_dat1, sun);
             masses.add_in_orbit(&big_dat2, sun);
-            simulation.run_mode = false;
+            simulation.set_run_mode(false);
         }
 
         3 => {
@@ -57,8 +58,8 @@ pub fn set_scene(scene_id: i16) -> (Simulation, Masses, Ship) {
             simulation.set_seconds_per_orbit(60.);
             let earth = masses.add_at_place(&earth_data);
             masses.add_in_orbit(&luna_data, earth);
+            masses.set_in_orbit(&ship_data, earth);
             ship.set_in_orbit(&mut masses, &ship_data, earth);
-            //ip.set_in_orbit(&mut masses, &ship_data.mul_radius(0.1), earth);
         }
 
         6 => {
@@ -67,8 +68,8 @@ pub fn set_scene(scene_id: i16) -> (Simulation, Masses, Ship) {
             let _luna = masses.add_in_orbit(&luna_data.mul_radius(0.1), earth);
             ship.set_in_orbit(&mut masses, &ship_data.mul_radius(0.1), earth);
             ship.set_burn(2154.2760453997807, 10424.84718004583);
-            simulation.run_mode = false;
-            //???ship.set_rotation(0., earth, luna);
+            simulation.set_run_mode(false);
+            // ship.set_rotation(0., earth, luna);
         }
 
         // Idee: Flyby führt zu langsammer/schneller/andere Richtung/bis zu 180 grad umkehr
@@ -76,12 +77,20 @@ pub fn set_scene(scene_id: i16) -> (Simulation, Masses, Ship) {
         7 => {
             // https://en.wikipedia.org/wiki/Lagrange_point
             simulation.set_text("Lagrange 4/5");
-            let sun = masses.add_at_place(&sun_data);
-            let earth = masses.add_in_orbit(&earth_data, sun);
-            ship.set_in_orbit(&mut masses, &ship_data.set_radius(300.), earth);
-            ship.set_burn(2154.2760453997807, 10424.84718004583);
 
-            simulation.run_mode = false;
+            //simulation.set_seconds_per_orbit(60.);
+            let sun = masses.add_at_place(&sun_data);
+            let su2 = masses.add_in_orbit(&earth_data, sun);
+            ship.set_in_orbit(&mut masses, &ship_data.mul_radius(20.), su2);
+
+            //let sun = masses.add_at_place(&sun_data);
+            //let earth = masses.add_in_orbit(&earth_data, sun);
+            //ship.add_in_orbit(&mut masses, &ship_data.mul_radius(100.), earth);
+
+            //ship.set_burn_acceleration(A_BURN * 1.);
+            //ship.set_burn(0., 10424.84718004583);
+
+            simulation.set_run_mode(false);
         }
 
         _ => {
@@ -91,14 +100,17 @@ pub fn set_scene(scene_id: i16) -> (Simulation, Masses, Ship) {
 
     // All masses are there, calculate the simulation seconds by the maximal ui-orbit-time
     simulation.set_orbit_seconds(&masses);
+
+    //äää
+    simulation.simulated_seconds_per_step = masses.maximal_orbit_seconds()
+        / SIMULATION_STEPS_PER_APP_SECOND
+        / simulation.ui_time_per_orbit;
+
     masses.set_radius();
 
     // initially simulate all the future positinos
     masses.predict_positions(&mut simulation);
     ship.predict_positions(&simulation, &masses);
-
-    //???controls = Controls::new(&ship);
-    //draw_set_view(0.95, 0.95, 1.);
 
     (simulation, masses, ship)
 }

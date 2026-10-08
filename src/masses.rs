@@ -85,7 +85,7 @@ impl<'a> MassData<'a> {
         ret.orbit_radius *= fakt;
         ret
     }
-    pub fn set_radius(&self, val: f64) -> Self {
+    pub fn _set_radius(&self, val: f64) -> Self {
         let mut ret = *self; // = self.clone();
         ret.orbit_radius = val;
         ret
@@ -145,7 +145,7 @@ impl Mass {
         mass
     }
 
-    pub fn get_position(&self) -> VecSpace {
+    pub fn position(&self) -> VecSpace {
         self.position
     }
 
@@ -153,7 +153,7 @@ impl Mass {
         self.position = val;
     }
 
-    pub fn get_velocity(&self) -> VecSpace {
+    pub fn velocity(&self) -> VecSpace {
         self.velocity
     }
 
@@ -181,7 +181,7 @@ impl Mass {
             * (radius.powi(3) / (GRAVITY_CONSTANT_OF_EARTH * (mass.mass + other.mass))).sqrt()
     }
 
-    pub fn ship_accelerate_ahead(&mut self, acceleration: f64) {
+    pub fn accelerate_ahead(&mut self, acceleration: f64) {
         let direction = self.velocity._normalized();
         self.acceleration += direction * acceleration;
     }
@@ -250,7 +250,7 @@ pub struct Masses {
     maximal_orbit_seconds: f64,
     // Calculated by the masses. Also needed and copied to the canvas.
     maximal_orbit_radius: f64,
-    pub predict_count: f64,
+    predict_count: f64,
     predict_show: f64,
 }
 
@@ -291,25 +291,23 @@ impl Masses {
         self.masses.len() - 1
     }
 
-    pub fn add_in_orbit(&mut self, data: &MassData, orbits: usize) -> usize {
+    pub fn set_in_orbit(&mut self, data: &MassData, orbits: usize) -> Mass {
         let orbits = &mut self.masses[orbits];
+        let mass = Mass::new(data, Some(orbits));
         self.maximal_orbit_radius = data.orbit_radius.max(self.maximal_orbit_radius);
         //println!("max orbit: {}", self.maximal_orbit);
-        let mass = Mass::new(data, Some(orbits));
         self.maximal_orbit_seconds = self.maximal_orbit_seconds.max(mass.orbit_seconds);
+        mass
+    }
+
+    pub fn add_in_orbit(&mut self, data: &MassData, orbits: usize) -> usize {
+        let mass = self.set_in_orbit(data, orbits);
         self.masses.push(mass);
         self.masses.len() - 1
     }
 
     pub fn set_radius(&self) {
         draw_set_maximal_orbit_radius(self.maximal_orbit_radius);
-    }
-
-    pub fn get_predict_show(&self) -> f64 {
-        self.predict_show
-    }
-    pub fn get_from_index(&mut self, index: usize) -> &mut Mass {
-        &mut self.masses[index]
     }
 
     pub fn drag_at_position(&self, position: VecSpace, index: usize) -> VecSpace {
@@ -360,11 +358,19 @@ impl Masses {
         self.positions_index %= PREDICT_COUNT;
     }
 
-    pub fn get_position(&self) -> usize {
+    pub fn position(&self) -> usize {
         self.positions_index
     }
 
-    pub fn draw(&self) {
+    pub fn draw_mass(&self, mass: &Mass) {
+        mass.draw(
+            self.positions_index,
+            self.predict_show as usize,
+            self.predict_count,
+        );
+    }
+
+    pub fn draw_masses(&self) {
         for mass in &self.masses {
             mass.draw(
                 self.positions_index,

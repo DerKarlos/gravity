@@ -32,11 +32,11 @@ impl Canvas {
     }
 
     fn circle(&self, position: VecSpace, diameter: f64, color: Color) {
-        pub const DRAW_FACT: f64 = 5.;
-        pub const DRAW_MIN: f64 = 3.;
-        pub const DRAW_MAX: f64 = 200.;
+        const DRAW_FACT: f64 = 5.;
+        const DRAW_MIN: f64 = 3.;
+        const DRAW_MAX: f64 = 200.;
 
-        let size = diameter / DRAW_FACT * self.z_view;
+        let size = diameter / DRAW_FACT; // Not * self.z_view: zooming will NOT change the size ...
         let size = size.clamp(DRAW_MIN, DRAW_MAX) as f32;
 
         let (x, y) = self.to_pixel(position);

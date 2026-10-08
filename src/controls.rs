@@ -13,46 +13,32 @@ pub struct Controls {
     y_view: UpDown,
     z_view: UpDown,
     predict_show: UpDown,
-    burn_start: UpDown, // ??? change to name _seconds and fuction
+    burn_start: UpDown,
     burn_seconds: UpDown,
     burn_acceleration: UpDown,
 }
 
 impl Controls {
     pub fn new(ship: &Ship) -> Controls {
+        let (burn_start, burn_seconds, burn_a) = ship.get_burn_values();
         Controls {
             x_view: UpDown::new("x_view", Formular::Add, 0., -9999., 50., 1.), // value, min, step, min
             y_view: UpDown::new("y_view", Formular::Add, 0., -9999., 50., 1.),
             z_view: UpDown::new("z_view", Formular::Add, 0.95, 0.0001, 1., 1.),
             predict_show: UpDown::new("p_show", Formular::Add, 0., 0., 10., 1.),
-            burn_start: UpDown::new("b_start", Formular::Mul, ship.burn_start, 0.0001, 1., 0.001),
-            burn_seconds: UpDown::new(
-                "b_secs",
-                Formular::Mul,
-                ship.burn_seconds,
-                0.0000,
-                1.,
-                0.001,
-            ), // min = 0 = off
-            burn_acceleration: UpDown::new(
-                "power",
-                Formular::Mul,
-                ship.burn_acceleration,
-                0.0001,
-                1.,
-                0.001,
-            ),
+            burn_start: UpDown::new("b_start", Formular::Mul, burn_start, 0.0001, 1., 0.001),
+            burn_seconds: UpDown::new("b_secs", Formular::Mul, burn_seconds, 0.0000, 1., 0.001), // min = 0 = off
+            burn_acceleration: UpDown::new("power", Formular::Mul, burn_a, 0.0001, 1., 0.001),
         }
     }
 
     pub fn key_down(&mut self, ship: &mut Ship, masses: &mut Masses, delta_time: f64) {
+        let (_, _, burn_acceleration) = ship.get_burn_values();
         if is_key_down(KeyCode::Space) {
-            ship.mass
-                .ship_accelerate_ahead(SIMULATION_STEP_SECONDS * ship.burn_acceleration);
+            ship.accelerate_ahead(SIMULATION_STEP_SECONDS * burn_acceleration);
         }
         if is_key_down(KeyCode::Backspace) {
-            ship.mass
-                .ship_accelerate_ahead(-SIMULATION_STEP_SECONDS * ship.burn_acceleration)
+            ship.accelerate_ahead(-SIMULATION_STEP_SECONDS * burn_acceleration)
         }
 
         ship.set_start_seconds(

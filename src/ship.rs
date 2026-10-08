@@ -2,13 +2,13 @@ use crate::masses::*;
 use crate::simulation::*;
 use crate::vec_space::*;
 
-const A_BURN: f64 = 0.3;
+pub const A_BURN: f64 = 0.3;
 
 pub struct Ship {
-    pub mass: Mass,
-    pub burn_start: f64,
-    pub burn_seconds: f64,
-    pub burn_acceleration: f64,
+    mass: Mass,
+    burn_start: f64,
+    burn_seconds: f64,
+    burn_acceleration: f64,
     position: VecSpace,
     velocity: VecSpace,
     _rotation_start: f64,
@@ -31,6 +31,10 @@ impl Ship {
         }
     }
 
+    pub fn get_burn_values(&self) -> (f64, f64, f64) {
+        (self.burn_start, self.burn_seconds, self.burn_acceleration)
+    }
+
     pub fn _set_rotation(&mut self, start: f64, a: usize, b: usize) {
         self._rotation_start = start;
         self.rotation_a = a;
@@ -43,14 +47,12 @@ impl Ship {
     }
 
     pub fn set_in_orbit(&mut self, masses: &mut Masses, data: &MassData, orbits: usize) {
-        let orbits = masses.get_from_index(orbits);
-        let mass = Mass::new(data, Some(orbits));
-        self.mass = mass;
+        self.mass = masses.set_in_orbit(data, orbits);
     }
 
     pub fn move_one_step(&mut self, simulation: &Simulation, masses: &Masses) {
         let acceleration_vector =
-            masses.drag_at_position(self.mass.get_position(), masses.positions_index());
+            masses.drag_at_position(self.mass.position(), masses.positions_index());
         self.mass.ship_accelerate_vec(acceleration_vector);
 
         self.burn(simulation, simulation.simulated_seconds);
@@ -63,7 +65,7 @@ impl Ship {
         let start = self.burn_start;
         let end = self.burn_start + self.burn_seconds;
 
-        println!("burn: {} / {}", start, seconds);
+        //println!("burn: {} / {}", start, seconds);
         if seconds > start && seconds < end {
             let mut burn = self.burn_acceleration;
             let delta = seconds - start;
@@ -71,8 +73,12 @@ impl Ship {
                 burn = burn / simulation.simulated_seconds_per_step * delta;
                 //println!("burn: {} / {}", burn, self.burn_start);
             }
-            self.mass.ship_accelerate_ahead(burn);
+            self.mass.accelerate_ahead(burn);
         }
+    }
+
+    pub fn accelerate_ahead(&mut self, acceleration: f64) {
+        self.mass.accelerate_ahead(acceleration);
     }
 
     // prediktor for ship: save, predict, restore
@@ -80,14 +86,14 @@ impl Ship {
     pub fn predict_positions(&mut self, simulation: &Simulation, masses: &Masses) {
         let rotate = self.rotation_a == self.rotation_b;
 
-        self.position = self.mass.get_position();
-        self.velocity = self.mass.get_velocity();
+        self.position = self.mass.position();
+        self.velocity = self.mass.velocity();
 
         let mut seconds = simulation.simulated_seconds;
         let mut drag_index = masses.positions_index();
         for move_index in 1..PREDICT_COUNT {
             // lett all masses drag the ship
-            let acceleration_vector = masses.drag_at_position(self.mass.get_position(), drag_index);
+            let acceleration_vector = masses.drag_at_position(self.mass.position(), drag_index);
             self.mass.ship_accelerate_vec(acceleration_vector);
 
             self.burn(simulation, seconds);
@@ -111,8 +117,7 @@ impl Ship {
     }
 
     pub fn draw(&self, masses: &Masses) {
-        self.mass
-            .draw(0, masses.get_predict_show() as usize, masses.predict_count);
+        masses.draw_mass(&self.mass);
     }
 
     pub fn set_start_seconds(&mut self, set: f64) {
