@@ -1,3 +1,5 @@
+//! May be a copy of vec2
+
 use std::ops;
 
 // ------------------- VECX STRUCT/CLASS -------------------
@@ -120,4 +122,34 @@ impl VecSpace {
     //        let out_y = x * s + y * &c;
     //
     //    }
+
+    /// Creates a 2D vector containing `[angle.cos(), angle.sin()]`. This can be used in
+    /// conjunction with the [`rotate()`][Self::rotate()] method, e.g.
+    /// `Vec2::from_angle(PI).rotate(Vec2::Y)` will create the vector `[-1, 0]`
+    /// and rotate [`Vec2::Y`] around it returning `-Vec2::Y`.
+    #[inline]
+    #[must_use]
+    pub fn from_angle(&self, angle: f64) -> Self {
+        //let (sin, cos) = f32::math::sin_cos(angle);
+        let sin = angle.sin();
+        let cos = angle.cos();
+        Self { x: cos, y: sin }
+    }
+
+    /// Returns `rhs` rotated by the angle of `self`. If `self` is normalized,
+    /// then this just rotation. This is what you usually want. Otherwise,
+    /// it will be like a rotation with a multiplication by `self`'s length.
+    #[inline]
+    #[must_use]
+    pub fn rotate(&self, rhs: Self) -> Self {
+        Self {
+            x: self.x * rhs.x - self.y * rhs.y,
+            y: self.y * rhs.x + self.x * rhs.y,
+        }
+    }
+
+    pub fn rotate_angle(&self, angle: f64) -> Self {
+        let x = self.from_angle(angle);
+        self.rotate(x)
+    }
 }

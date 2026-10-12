@@ -250,7 +250,7 @@ pub struct Masses {
     maximal_orbit_seconds: f64,
     // Calculated by the masses. Also needed and copied to the canvas.
     maximal_orbit_radius: f64,
-    predict_count: f64,
+    pub predict_count: f64,
     predict_show: f64,
 }
 
@@ -362,12 +362,8 @@ impl Masses {
         self.positions_index
     }
 
-    pub fn draw_mass(&self, mass: &Mass) {
-        mass.draw(
-            self.positions_index,
-            self.predict_show as usize,
-            self.predict_count,
-        );
+    pub fn draw_position_0(&self, mass: &Mass) {
+        mass.draw(0, self.predict_show as usize, self.predict_count);
     }
 
     pub fn draw_masses(&self) {

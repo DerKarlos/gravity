@@ -19,11 +19,14 @@ use macroquad::prelude::{BLACK, clear_background, get_char_pressed, get_frame_ti
 use scene::*;
 use simulation::*;
 
-const SCENE: i16 = 7;
+use crate::vec_space::VecSpace;
 
 #[macroquad::main("Gravity Sim Experience")]
 async fn main() {
     // let (mut simulation, mut masses, mut ship, mut canvas) = set_scene(0);
+
+    let x = VecSpace::ZERO;
+    let _y = x.rotate_angle(1.);
 
     let (mut simulation, mut masses, mut ship) = set_scene(SCENE);
 

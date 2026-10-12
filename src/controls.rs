@@ -64,10 +64,13 @@ impl Controls {
             masses.mul_predict_count(0.996);
         }
 
-        masses.set_predict_show(
-            self.predict_show
-                .up_down(KeyCode::I, KeyCode::K, delta_time),
-        );
+        let mut actual = self
+            .predict_show
+            .up_down(KeyCode::I, KeyCode::K, delta_time);
+        if actual >= masses.predict_count - 1. {
+            actual = masses.predict_count - 1.;
+        }
+        masses.set_predict_show(actual);
 
         draw_set_view(
             self.x_view.up_down(KeyCode::A, KeyCode::D, delta_time),

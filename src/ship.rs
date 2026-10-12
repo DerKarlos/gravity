@@ -117,7 +117,8 @@ impl Ship {
     }
 
     pub fn draw(&self, masses: &Masses) {
-        masses.draw_mass(&self.mass);
+        // The ship does not wrap the positions. Predictin always start at index 0
+        masses.draw_position_0(&self.mass);
     }
 
     pub fn set_start_seconds(&mut self, set: f64) {

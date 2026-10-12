@@ -5,6 +5,8 @@ use crate::simulation::*;
 // for colours
 use macroquad::prelude::*;
 
+pub const SCENE: i16 = 6;
+
 pub fn set_scene(scene_id: i16) -> (Simulation, Masses, Ship) {
     let mut simulation = Simulation::new(scene_id);
     let mut masses = Masses::new();
@@ -21,14 +23,13 @@ pub fn set_scene(scene_id: i16) -> (Simulation, Masses, Ship) {
     let luna_data = MassData::orbiter("luna", RED, km(3476.), kg(7.349e22), km(370171.));
     let _jupiter_d = MassData::orbiter("jupiter", GREEN, km(142984.0), kg(1.899e27), au(25e3));
     let comet_data = MassData::ellipse("comet", DARKGRAY, km(500.0), kg(1e6), au(1.3), 0.4);
-    let ship_data = MassData::orbiter("ship", WHITE, 10.0, 0.0, km(80000.)); // the real 300km are not visible
+    let ship_data = MassData::orbiter("ship", WHITE, 10.0, 0.0, km(300.)); // 80000. the real 300km are not visible
 
     match scene_id {
         1 => {
             simulation.set_text("double star");
             let sun = masses.add_at_place(&sun_data);
-            let su2 = masses.add_in_orbit(&sun_dat2, sun);
-            ship.set_in_orbit(&mut masses, &ship_data.mul_radius(200.), su2);
+            let _s2 = masses.add_in_orbit(&sun_dat2, sun);
         }
 
         2 => {
@@ -57,16 +58,15 @@ pub fn set_scene(scene_id: i16) -> (Simulation, Masses, Ship) {
             simulation.set_text("Earth & Luna & Ship");
             simulation.set_seconds_per_orbit(60.);
             let earth = masses.add_at_place(&earth_data);
-            masses.add_in_orbit(&luna_data, earth);
-            masses.set_in_orbit(&ship_data, earth);
-            ship.set_in_orbit(&mut masses, &ship_data, earth);
+            let _luna = masses.add_in_orbit(&luna_data, earth);
+            ship.set_in_orbit(&mut masses, &ship_data.mul_radius(100.), earth); // The real 300km are not visible
         }
 
         6 => {
             simulation.set_text("Moon 8 loop (realy?)");
             let earth = masses.add_at_place(&earth_data);
-            let _luna = masses.add_in_orbit(&luna_data.mul_radius(0.1), earth);
-            ship.set_in_orbit(&mut masses, &ship_data.mul_radius(0.1), earth);
+            let _luna = masses.add_in_orbit(&luna_data.mul_radius(0.1), earth); // todo: real values ???
+            ship.set_in_orbit(&mut masses, &ship_data.mul_radius(26.6), earth); // The real 300km are not visible
             ship.set_burn(2154.2760453997807, 10424.84718004583);
             simulation.set_run_mode(false);
             // ship.set_rotation(0., earth, luna);
@@ -78,17 +78,17 @@ pub fn set_scene(scene_id: i16) -> (Simulation, Masses, Ship) {
             // https://en.wikipedia.org/wiki/Lagrange_point
             simulation.set_text("Lagrange 4/5");
 
-            //simulation.set_seconds_per_orbit(60.);
-            let sun = masses.add_at_place(&sun_data);
-            let su2 = masses.add_in_orbit(&earth_data, sun);
-            ship.set_in_orbit(&mut masses, &ship_data.mul_radius(20.), su2);
+            //simulation.set_seconds_per_orbit(20.);
+            let earth = masses.add_at_place(&earth_data);
+            let luna = masses.add_in_orbit(&luna_data, earth);
+            ship.set_in_orbit(&mut masses, &ship_data.mul_radius(50.), luna);
 
-            //let sun = masses.add_at_place(&sun_data);
-            //let earth = masses.add_in_orbit(&earth_data, sun);
-            //ship.add_in_orbit(&mut masses, &ship_data.mul_radius(100.), earth);
+            ship.set_burn_acceleration(A_BURN * 1.);
+            ship.set_burn(0., 2222.);
+            ship.set_burn(0.08034150634335382, 4647.);
 
-            //ship.set_burn_acceleration(A_BURN * 1.);
-            //ship.set_burn(0., 10424.84718004583);
+            //        step_down 0.08034150634335382
+            //        b_secs down: 4843.84931330225 / 0.08034150634335382
 
             simulation.set_run_mode(false);
         }
