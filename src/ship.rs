@@ -35,6 +35,10 @@ impl Ship {
         (self.burn_start, self.burn_seconds, self.burn_acceleration)
     }
 
+    pub fn speed(&self) -> f64 {
+        self.velocity.length()
+    }
+
     pub fn _set_rotation(&mut self, start: f64, a: usize, b: usize) {
         self._rotation_start = start;
         self.rotation_a = a;

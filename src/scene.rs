@@ -5,7 +5,7 @@ use crate::simulation::*;
 // for colours
 use macroquad::prelude::*;
 
-pub const SCENE: i16 = 6;
+pub const SCENE: i16 = 7;
 
 pub fn set_scene(scene_id: i16) -> (Simulation, Masses, Ship) {
     let mut simulation = Simulation::new(scene_id);
@@ -66,8 +66,9 @@ pub fn set_scene(scene_id: i16) -> (Simulation, Masses, Ship) {
             simulation.set_text("Moon 8 loop (realy?)");
             let earth = masses.add_at_place(&earth_data);
             let _luna = masses.add_in_orbit(&luna_data.mul_radius(0.1), earth); // todo: real values ???
-            ship.set_in_orbit(&mut masses, &ship_data.mul_radius(26.6), earth); // The real 300km are not visible
-            ship.set_burn(2154.2760453997807, 10424.84718004583);
+            ship.set_in_orbit(&mut masses, &ship_data.mul_radius(20.), earth); // 26.6 The real 300km are not visible
+            ship.set_burn(3444., 13432.);
+
             simulation.set_run_mode(false);
             // ship.set_rotation(0., earth, luna);
         }
@@ -103,7 +104,7 @@ pub fn set_scene(scene_id: i16) -> (Simulation, Masses, Ship) {
 
     //äää
     simulation.simulated_seconds_per_step = masses.maximal_orbit_seconds()
-        / SIMULATION_STEPS_PER_APP_SECOND
+        / SIMULATION_STEPS_PER_UI_TIME
         / simulation.ui_time_per_orbit;
 
     masses.set_radius();

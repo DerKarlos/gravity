@@ -3,10 +3,11 @@
 
 use crate::canvas::*;
 use crate::masses::*;
+use crate::ship::*;
 
 // About like the framerate in Hz, but will be checked and repeated if needed
-pub const SIMULATION_STEPS_PER_APP_SECOND: f64 = 50.;
-pub const SIMULATION_STEP_SECONDS: f64 = 1. / SIMULATION_STEPS_PER_APP_SECOND;
+pub const SIMULATION_STEPS_PER_UI_TIME: f64 = 50.; // per secound
+pub const SIMULATION_STEP_TIME: f64 = 1. / SIMULATION_STEPS_PER_UI_TIME;
 
 // ------------------- MASSES STRUCT/CLASS -------------------
 
@@ -50,9 +51,8 @@ impl Simulation {
 
     pub fn set_orbit_seconds(&mut self, masses: &Masses) {
         // All masses are there, calculate the simulation seconds by the maximal ui-orbit-time
-        self.simulated_seconds_per_step = masses.maximal_orbit_seconds()
-            / SIMULATION_STEPS_PER_APP_SECOND
-            / self.ui_time_per_orbit;
+        self.simulated_seconds_per_step =
+            masses.maximal_orbit_seconds() / SIMULATION_STEPS_PER_UI_TIME / self.ui_time_per_orbit;
     }
 
     // initially simulate all the future positinos
@@ -67,7 +67,7 @@ impl Simulation {
         self.run_mode = !self.run_mode;
     }
 
-    pub fn draw_text(&mut self, masses: &Masses) {
-        draw_hud(&self.text, masses.position());
+    pub fn draw_text(&mut self, ship: &Ship) {
+        draw_hud(&self.text, ship.speed());
     }
 }

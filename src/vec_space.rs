@@ -1,5 +1,6 @@
 //! May be a copy of vec2
 
+use core::f32;
 use std::ops;
 
 // ------------------- VECX STRUCT/CLASS -------------------
@@ -114,14 +115,15 @@ impl VecSpace {
         self.y = 0.0;
     }
 
-    //    pub fn transform_angle(&mut self)
-    //        let c = a.cos();
-    //        let s = a.sin();
-    //
-    //        let out_x = x * c - y * &s;
-    //        let out_y = x * s + y * &c;
-    //
-    //    }
+    /// Returns the angle (in radians) of this vector in the range `[-π, +π]`.
+    ///
+    /// The input does not need to be a unit vector however it must be non-zero.
+    #[inline]
+    #[must_use]
+    pub fn to_angle(self) -> f64 {
+        //core::f32::math::atan2(self.y, self.x)
+        self.y.atan2(self.x)
+    }
 
     /// Creates a 2D vector containing `[angle.cos(), angle.sin()]`. This can be used in
     /// conjunction with the [`rotate()`][Self::rotate()] method, e.g.

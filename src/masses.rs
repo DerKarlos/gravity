@@ -4,6 +4,7 @@
 use crate::canvas::*;
 use crate::simulation::*;
 use crate::vec_space::*;
+use macroquad::math::Vec2;
 use macroquad::prelude::{BLACK, Color};
 
 //////////////////// Parameter ////////////////////
@@ -97,8 +98,10 @@ impl<'a> MassData<'a> {
 #[derive(Debug, Clone)]
 pub struct Mass {
     _name: String, // why not &'static str ???
+    index: usize,
     mass: f64,
     diameter: f64,
+    orbits: usize,
     orbit_seconds: f64,
     color: Color,
     acceleration: VecSpace,
@@ -111,8 +114,10 @@ impl Mass {
     pub fn _zero() -> Mass {
         Mass {
             _name: String::from("ZERO"),
+            index: 0,
             mass: 0.,
             diameter: 0.,
+            orbits: 0,
             orbit_seconds: 0.,
             color: BLACK,
             acceleration: VecSpace::ZERO,
@@ -123,11 +128,13 @@ impl Mass {
     }
 
     // pub for new ship
-    pub fn new(data: &MassData, orbits: Option<&mut Mass>) -> Mass {
+    pub fn new(data: &MassData, orbits: Option<&mut Mass>, index: usize) -> Mass {
         let mut mass = Mass {
             _name: data.name.to_string(),
+            index,
             color: data.color,
             diameter: data.diameter,
+            orbits: 0,
             orbit_seconds: 0.,
             mass: data.mass,
             position: VecSpace::ZERO,
@@ -137,6 +144,7 @@ impl Mass {
         };
 
         if let Some(orbited_mass) = orbits {
+            mass.orbits = orbited_mass.index;
             mass.position += VecSpace::new(data.orbit_radius, 0.); // + orbited_mass.position; done by set_v_orbit
             mass.orbit_seconds = Self::set_v_orbit(&mut mass, orbited_mass, data.excentricity);
         };
@@ -286,14 +294,19 @@ impl Masses {
     }
 
     pub fn add_at_place(&mut self, data: &MassData) -> usize {
-        let mass = Mass::new(data, None);
+        let index = self.masses.len();
+        let mass = Mass::new(data, None, index);
+        println!("add_at_place: {}", index);
         self.masses.push(mass);
-        self.masses.len() - 1
+        index
     }
 
-    pub fn set_in_orbit(&mut self, data: &MassData, orbits: usize) -> Mass {
-        let orbits = &mut self.masses[orbits];
-        let mass = Mass::new(data, Some(orbits));
+    pub fn set_in_orbit(&mut self, data: &MassData, orbits_index: usize) -> Mass {
+        let index = self.masses.len();
+        println!("set_in_orbit: {} {}", index, orbits_index);
+        let orbits = &mut self.masses[orbits_index];
+        let mut mass = Mass::new(data, Some(orbits), index);
+        mass.orbits = orbits_index;
         self.maximal_orbit_radius = data.orbit_radius.max(self.maximal_orbit_radius);
         //println!("max orbit: {}", self.maximal_orbit);
         self.maximal_orbit_seconds = self.maximal_orbit_seconds.max(mass.orbit_seconds);
@@ -301,9 +314,19 @@ impl Masses {
     }
 
     pub fn add_in_orbit(&mut self, data: &MassData, orbits: usize) -> usize {
+        let index = self.masses.len();
         let mass = self.set_in_orbit(data, orbits);
         self.masses.push(mass);
-        self.masses.len() - 1
+        index
+    }
+
+    pub fn orbit_angle(&self, mass_index: usize) -> f64 {
+        let orbited_index = self.masses[mass_index].orbits;
+        let orbited_position = self.masses[orbited_index].position();
+        let mass_position = self.masses[mass_index].position();
+        let relativ = mass_position - orbited_position;
+        println!("{:?} {:?}", mass_position, orbited_position);
+        relativ.to_angle()
     }
 
     pub fn set_radius(&self) {
@@ -343,7 +366,7 @@ impl Masses {
     pub fn predict_positions(&mut self, simulation: &mut Simulation) {
         // All masses are there, calculate the simulation seconds by the maximal orbit time (as ui-time!)
         simulation.simulated_seconds_per_step = self.maximal_orbit_seconds()
-            / SIMULATION_STEPS_PER_APP_SECOND
+            / SIMULATION_STEPS_PER_UI_TIME
             / simulation.ui_time_per_orbit;
 
         for _ in 1..PREDICT_COUNT {
@@ -356,10 +379,6 @@ impl Masses {
     pub fn inc_position(&mut self) {
         self.positions_index += 1;
         self.positions_index %= PREDICT_COUNT;
-    }
-
-    pub fn position(&self) -> usize {
-        self.positions_index
     }
 
     pub fn draw_position_0(&self, mass: &Mass) {

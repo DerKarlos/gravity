@@ -8,6 +8,12 @@ use macroquad::prelude::*;
 // ui-time gap to assume, the key was not pressed any more
 const KEY_NOT_PRESSED_TIME: f64 = 0.33;
 
+pub enum KeyEvent {
+    NONE,
+    BREAK,
+    SceneID(i16),
+}
+
 pub struct Controls {
     x_view: UpDown,
     y_view: UpDown,
@@ -32,13 +38,39 @@ impl Controls {
         }
     }
 
+    pub fn char_pressed(&self, simulation: &mut Simulation) -> KeyEvent {
+        if let Some(char) = get_char_pressed() {
+            // println!("pressed char {:?}!", char);
+            match char {
+                '\u{1b}' => return KeyEvent::BREAK, // KeyCode::Escape
+                '\r' => {
+                    // KeyCode::Enter
+                    simulation.toggle_run_mode();
+                    //println!(  "planing_mode: {} {}",simulation.run_mode, simulation.simulated_world_seconds );
+                }
+
+                '0'..='9' | 'r' => {
+                    let id = if char == 'r' {
+                        simulation.scene()
+                    } else {
+                        char as i16 - 48
+                    };
+                    println!("scene = {}", id);
+                    return KeyEvent::SceneID(id);
+                }
+                _ => (), // println!("Char not used: {:?}!", char),
+            }
+        }
+        KeyEvent::NONE
+    }
+
     pub fn key_down(&mut self, ship: &mut Ship, masses: &mut Masses, delta_time: f64) {
         let (_, _, burn_acceleration) = ship.get_burn_values();
         if is_key_down(KeyCode::Space) {
-            ship.accelerate_ahead(SIMULATION_STEP_SECONDS * burn_acceleration);
+            ship.accelerate_ahead(SIMULATION_STEP_TIME * burn_acceleration);
         }
         if is_key_down(KeyCode::Backspace) {
-            ship.accelerate_ahead(-SIMULATION_STEP_SECONDS * burn_acceleration)
+            ship.accelerate_ahead(-SIMULATION_STEP_TIME * burn_acceleration)
         }
 
         ship.set_start_seconds(
@@ -123,7 +155,7 @@ impl UpDown {
         if self.step < self.step_min {
             self.step = self.step_min;
         }
-        println!("step_down {}", self.step);
+        println!("{}: step_down {}", self.name, self.step);
     }
 
     pub fn up_down(&mut self, key_up: KeyCode, key_down: KeyCode, delta_time: f64) -> f64 {

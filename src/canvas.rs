@@ -49,9 +49,9 @@ impl Canvas {
         macroquad::shapes::draw_rectangle(x, y, 1., 1., color);
     }
 
-    fn hud(&self, text: &String, position_index: usize) {
+    fn hud(&self, text: &String, ship_speed: f64) {
         draw_text(
-            format!("{} {}", text, position_index).as_str(),
+            format!("{} v:{}", text, ship_speed as i32).as_str(),
             20.0,
             20.0,
             30.0,
@@ -166,9 +166,9 @@ pub fn draw_rectangle(position: VecSpace, color: Color) {
     canvas.rectangle(position, color);
 }
 
-pub fn draw_hud(text: &String, position_index: usize) {
+pub fn draw_hud(text: &String, ship_speed: f64) {
     let canvas = canvas().lock().unwrap();
-    canvas.hud(text, position_index);
+    canvas.hud(&text, ship_speed);
 }
 
 pub fn draw_set_view(x: f64, y: f64, z: f64) {

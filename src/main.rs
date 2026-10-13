@@ -13,20 +13,18 @@ mod simulation;
 mod vec_space;
 
 use canvas::draw_grid;
-use controls::*;
+use controls::{Controls, KeyEvent};
 
-use macroquad::prelude::{BLACK, clear_background, get_char_pressed, get_frame_time, next_frame};
+use macroquad::prelude::{BLACK, RED, clear_background, get_frame_time, next_frame};
+use masses::*;
 use scene::*;
 use simulation::*;
 
-use crate::vec_space::VecSpace;
+use crate::{canvas::draw_circle, vec_space::VecSpace};
 
 #[macroquad::main("Gravity Sim Experience")]
 async fn main() {
     // let (mut simulation, mut masses, mut ship, mut canvas) = set_scene(0);
-
-    let x = VecSpace::ZERO;
-    let _y = x.rotate_angle(1.);
 
     let (mut simulation, mut masses, mut ship) = set_scene(SCENE);
 
@@ -35,46 +33,26 @@ async fn main() {
     let mut frame_seconds_left = 0.0;
 
     loop {
-        if let Some(char) = get_char_pressed() {
-            // println!("pressed char {:?}!", char);
-            match char {
-                '\u{1b}' => break, // KeyCode::Escape
-                '\r' => {
-                    // KeyCode::Enter
-                    simulation.toggle_run_mode();
-                    //println!(  "planing_mode: {} {}",simulation.run_mode, simulation.simulated_world_seconds );
-                }
-
-                '0'..='9' | 'r' => {
-                    let id = if char == 'r' {
-                        simulation.scene()
-                    } else {
-                        char as i16 - 48
-                    };
-                    println!("scene = {}", id);
-                    (simulation, masses, ship) = set_scene(id);
-                    controls = Controls::new(&ship);
-                }
-                _ => (), // println!("Char not used: {:?}!", char),
+        // INPUT //
+        match controls.char_pressed(&mut simulation) {
+            KeyEvent::NONE => (),
+            KeyEvent::BREAK => break,
+            KeyEvent::SceneID(id) => {
+                (simulation, masses, ship) = set_scene(id);
+                controls = Controls::new(&ship);
             }
         }
-
-        clear_background(BLACK);
-
-        draw_grid();
-        simulation.draw_text(&masses);
-        masses.draw_masses(); // incl. prediction
-        ship.draw(&masses);
-
-        // simulate next position to be drawn in the next loop
         let frame_seconds: f64 = (get_frame_time() as f64).min(1.0);
+        controls.key_down(&mut ship, &mut masses, frame_seconds);
+
+        // SIMULATE //
+        //
+        // Simulate next position to be drawn in the next loop
         frame_seconds_left += frame_seconds;
 
         // Simulate nothing or one ore some simulation steps
-        controls.key_down(&mut ship, &mut masses, frame_seconds);
-
-        while frame_seconds_left > SIMULATION_STEP_SECONDS {
-            frame_seconds_left -= SIMULATION_STEP_SECONDS;
+        while frame_seconds_left > SIMULATION_STEP_TIME {
+            frame_seconds_left -= SIMULATION_STEP_TIME;
 
             if simulation.run_mode() {
                 ship.move_one_step(&simulation, &masses);
@@ -85,6 +63,21 @@ async fn main() {
             // Predict ship with new masses index or new burn values etc.
             ship.predict_positions(&simulation, &masses);
         }
+
+        // DRAW //
+        clear_background(BLACK);
+        draw_grid();
+        simulation.draw_text(&ship);
+        masses.draw_masses(); // incl. prediction
+        ship.draw(&masses); // incl. prediction
+
+        let angle = masses.orbit_angle(1);
+        let d: f64 = 30.;
+        let r = d.to_radians();
+
+        let x = VecSpace::new(0., km(370171.));
+        let y = x.rotate_angle(angle - r);
+        draw_circle(y, 22., RED);
 
         next_frame().await
     }
