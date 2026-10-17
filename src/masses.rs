@@ -4,7 +4,6 @@
 use crate::canvas::*;
 use crate::simulation::*;
 use crate::vec_space::*;
-use macroquad::math::Vec2;
 use macroquad::prelude::{BLACK, Color};
 
 //////////////////// Parameter ////////////////////
@@ -325,7 +324,7 @@ impl Masses {
         let orbited_position = self.masses[orbited_index].position();
         let mass_position = self.masses[mass_index].position();
         let relativ = mass_position - orbited_position;
-        println!("{:?} {:?}", mass_position, orbited_position);
+        // println!("{:?} {:?}", mass_position, orbited_position);
         relativ.to_angle()
     }
 

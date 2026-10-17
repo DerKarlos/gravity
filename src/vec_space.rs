@@ -1,6 +1,5 @@
 //! May be a copy of vec2
 
-use core::f32;
 use std::ops;
 
 // ------------------- VECX STRUCT/CLASS -------------------

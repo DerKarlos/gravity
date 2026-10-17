@@ -18,6 +18,7 @@ pub struct Controls {
     x_view: UpDown,
     y_view: UpDown,
     z_view: UpDown,
+    a_view: UpDown,
     predict_show: UpDown,
     burn_start: UpDown,
     burn_seconds: UpDown,
@@ -31,6 +32,7 @@ impl Controls {
             x_view: UpDown::new("x_view", Formular::Add, 0., -9999., 50., 1.), // value, min, step, min
             y_view: UpDown::new("y_view", Formular::Add, 0., -9999., 50., 1.),
             z_view: UpDown::new("z_view", Formular::Add, 0.95, 0.0001, 1., 1.),
+            a_view: UpDown::new("a_view", Formular::Add, 0., -9999., 50., 1.),
             predict_show: UpDown::new("p_show", Formular::Add, 0., 0., 10., 1.),
             burn_start: UpDown::new("b_start", Formular::Mul, burn_start, 0.0001, 1., 0.001),
             burn_seconds: UpDown::new("b_secs", Formular::Mul, burn_seconds, 0.0000, 1., 0.001), // min = 0 = off
@@ -108,6 +110,7 @@ impl Controls {
             self.x_view.up_down(KeyCode::A, KeyCode::D, delta_time),
             self.y_view.up_down(KeyCode::W, KeyCode::S, delta_time),
             self.z_view.up_down(KeyCode::E, KeyCode::Q, delta_time),
+            self.a_view.up_down(KeyCode::Z, KeyCode::C, delta_time), // Y on german keybpards! Do we need an Y or Z???
         );
     }
 }
