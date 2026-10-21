@@ -4,57 +4,56 @@ use crate::vec_space::*;
 use macroquad::prelude::*;
 use std::sync::{Mutex, OnceLock};
 
+const Z_DEFAULT: f64 = 0.95;
+
 pub struct Canvas {
-    xy_view: VecSpace,
-    z_view: f64,
-    z_grid: f64,
-    angle_grid: f64,
+    view_angle: f64,
+    view_xy: VecSpace,
+    view_z: f64,
+    grid_z: f64,
     maximal_orbit_radius: f64,
 }
 
 impl Canvas {
     pub fn new() -> Canvas {
         Canvas {
-            xy_view: VecSpace::ZERO,
-            z_view: 1.,
-            z_grid: 1.,
-            angle_grid: 0.,
+            view_angle: 0.,
+            view_xy: VecSpace::ZERO,
+            view_z: Z_DEFAULT,
+            grid_z: Z_DEFAULT,
             maximal_orbit_radius: 1.,
         }
     }
 
-    pub fn set_view(&mut self, x: f64, y: f64, z: f64, a: f64) {
-        self.xy_view.set_x(x);
-        self.xy_view.set_y(y);
-        self.z_view = z;
-        self.angle_grid = a;
+    fn start(&mut self) {
+        clear_background(BLACK);
+        self.grid();
     }
 
-    pub fn set_maximal_orbit_radius(&mut self, val: f64) {
+    fn add_view(&mut self, x: f64, y: f64, z: f64, a: f64) {
+        self.view_xy.add_x(x);
+        self.view_xy.add_y(y);
+        self.view_z *= 1. + 1. * z;
+        self.view_angle += a;
+    }
+
+    fn set_maximal_orbit_radius(&mut self, val: f64) {
         self.maximal_orbit_radius = val;
     }
 
-    fn circle(&self, mut position: VecSpace, diameter: f64, color: Color) {
+    fn circle(&self, position: VecSpace, diameter: f64, color: Color) {
         const DRAW_FACT: f64 = 5.;
         const DRAW_MIN: f64 = 3.;
         const DRAW_MAX: f64 = 200.;
 
         let size = diameter / DRAW_FACT; // Not * self.z_view: zooming will NOT change the size ...
         let size = size.clamp(DRAW_MIN, DRAW_MAX) as f32;
-        if self.angle_grid != 0. {
-            position = position.rotate_angle(self.angle_grid.to_radians());
-        }
-
         let (x, y) = self.to_pixel(position);
 
         macroquad::shapes::draw_circle(x, y, size, color);
     }
 
-    fn rectangle(&self, mut position: VecSpace, color: Color) {
-        if self.angle_grid != 0. {
-            position = position.rotate_angle(self.angle_grid.to_radians());
-        }
-
+    fn rectangle(&self, position: VecSpace, color: Color) {
         let (x, y) = self.to_pixel(position);
         macroquad::shapes::draw_rectangle(x, y, 1., 1., color);
     }
@@ -69,17 +68,17 @@ impl Canvas {
         );
     }
 
-    pub fn grid(&mut self) {
-        if self.z_view > self.z_grid {
-            self.z_grid *= 2.0;
+    fn grid(&mut self) {
+        if self.view_z > self.grid_z {
+            self.grid_z *= 2.0;
             // println!("z_draw: {}", &masses.z_grid);
         }
-        if self.z_view < self.z_grid {
-            self.z_grid /= 2.0;
+        if self.view_z < self.grid_z {
+            self.grid_z /= 2.0;
             // println!("z_draw: {}", &masses.z_grid);
         }
 
-        let max = 4. * self.maximal_orbit_radius / self.z_grid;
+        let max = 4. * self.maximal_orbit_radius / self.grid_z;
         //self.from_pixel(self.window_with, self.window_height).x();
         //println!("{}", max);
         let step = max / 100.;
@@ -89,14 +88,8 @@ impl Canvas {
         let mut x = -max;
         let mut sub = 0;
         loop {
-            let mut beg = VecSpace::new(x, max);
-            let mut end = VecSpace::new(x, -max);
-            if self.angle_grid != 0. {
-                beg = beg.rotate_angle(self.angle_grid.to_radians());
-                end = end.rotate_angle(self.angle_grid.to_radians());
-            }
-            let (beg_x, beg_y) = self.to_pixel(beg);
-            let (end_x, end_y) = self.to_pixel(end);
+            let (beg_x, beg_y) = self.to_pixel(VecSpace::new(x, max));
+            let (end_x, end_y) = self.to_pixel(VecSpace::new(x, -max));
             draw_line(beg_x, beg_y, end_x, end_y, 1., line_color(sub));
 
             sub += 1;
@@ -110,14 +103,8 @@ impl Canvas {
         let mut y = -max;
         let mut sub = 0;
         loop {
-            let mut beg = VecSpace::new(max, y);
-            let mut end = VecSpace::new(-max, y);
-            if self.angle_grid != 0. {
-                beg = beg.rotate_angle(self.angle_grid.to_radians());
-                end = end.rotate_angle(self.angle_grid.to_radians());
-            }
-            let (beg_x, beg_y) = self.to_pixel(beg);
-            let (end_x, end_y) = self.to_pixel(end);
+            let (beg_x, beg_y) = self.to_pixel(VecSpace::new(max, y));
+            let (end_x, end_y) = self.to_pixel(VecSpace::new(-max, y));
             draw_line(beg_x, beg_y, end_x, end_y, 1., line_color(sub));
 
             sub += 1;
@@ -144,10 +131,15 @@ impl Canvas {
         // The smallest extend of the window counts as visible screen range
         let max_pixel_from_center = screen_width().min(screen_height()) as i32 / 2;
 
-        let scale = self.z_view / self.maximal_orbit_radius * max_pixel_from_center as f64;
+        let scale = self.view_z / self.maximal_orbit_radius * max_pixel_from_center as f64;
 
         // Scale by view, divide by scene multiply by screen, add screen center
-        let screen_pos = position * scale + self.xy_view + window_center;
+        let mut screen_pos = position * scale + self.view_xy;
+        if self.view_angle != 0. {
+            screen_pos = screen_pos.rotate_angle(self.view_angle.to_radians());
+        }
+        screen_pos += window_center;
+
         (screen_pos.x() as f32, screen_pos.y() as f32)
     }
 }
@@ -179,6 +171,15 @@ fn canvas() -> &'static Mutex<Canvas> {
     CANVAS.get_or_init(|| Mutex::new(Canvas::new()))
 }
 
+pub fn draw_reset() {
+    let mut canvas = canvas().lock().unwrap();
+    canvas.view_angle = 0.;
+    canvas.view_xy = VecSpace::ZERO;
+    canvas.view_z = Z_DEFAULT;
+    canvas.grid_z = Z_DEFAULT;
+    canvas.maximal_orbit_radius = 1.;
+}
+
 pub fn draw_circle(position: VecSpace, diameter: f64, color: Color) {
     let canvas = canvas().lock().unwrap();
     canvas.circle(position, diameter, color);
@@ -194,9 +195,16 @@ pub fn draw_hud(text: &String, ship_speed: f64) {
     canvas.hud(&text, ship_speed);
 }
 
-pub fn draw_set_view(x: f64, y: f64, z: f64, a: f64) {
+pub fn draw_set_view_xy(val: VecSpace) {
     let mut canvas = canvas().lock().unwrap();
-    canvas.set_view(x, y, z, a);
+    let (x, y) = canvas.to_pixel(val);
+    println!("{}/{} < {:?}", x, y, val);
+    canvas.view_xy = VecSpace::new(-x as f64 / 1., -y as f64 / 1.);
+}
+
+pub fn draw_add_view(x: f64, y: f64, z: f64, a: f64) {
+    let mut canvas = canvas().lock().unwrap();
+    canvas.add_view(x, y, z, a);
 }
 
 pub fn draw_set_maximal_orbit_radius(val: f64) {
@@ -204,7 +212,7 @@ pub fn draw_set_maximal_orbit_radius(val: f64) {
     canvas.set_maximal_orbit_radius(val);
 }
 
-pub fn draw_grid() {
+pub fn draw_start() {
     let mut canvas = canvas().lock().unwrap();
-    canvas.grid();
+    canvas.start();
 }

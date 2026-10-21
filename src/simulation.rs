@@ -19,6 +19,7 @@ pub struct Simulation {
     pub simulated_seconds: f64,
     pub simulated_seconds_per_step: f64, // rename all step to frame ? No, a frame may execute multible frames
     run_mode: bool,
+    follow: usize,
 }
 
 impl Simulation {
@@ -30,6 +31,7 @@ impl Simulation {
             simulated_seconds: 0.0,
             simulated_seconds_per_step: 0.0,
             run_mode: true,
+            follow: 0,
         }
     }
 
@@ -41,6 +43,9 @@ impl Simulation {
     }
     pub fn set_run_mode(&mut self, val: bool) {
         self.run_mode = val;
+    }
+    pub fn set_follow(&mut self, val: usize) {
+        self.follow = val;
     }
     pub fn set_seconds_per_orbit(&mut self, val: f64) {
         self.ui_time_per_orbit = val;
@@ -67,7 +72,11 @@ impl Simulation {
         self.run_mode = !self.run_mode;
     }
 
-    pub fn draw_text(&mut self, ship: &Ship) {
+    pub fn draw(&mut self, masses: &Masses, ship: &Ship) {
+        if self.follow > 0 {
+            let position = masses.get_position(self.follow);
+            draw_set_view_xy(position);
+        }
         draw_hud(&self.text, ship.speed());
     }
 }

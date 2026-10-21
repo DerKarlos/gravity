@@ -19,7 +19,7 @@ pub struct Ship {
 impl Ship {
     pub fn default() -> Ship {
         Ship {
-            mass: Mass::_zero(),
+            mass: Mass::zero(),
             burn_start: 0.0,
             burn_seconds: 0.0,
             burn_acceleration: A_BURN,

@@ -55,12 +55,20 @@ impl VecSpace {
         Self { x, y }
     }
 
-    pub fn set_x(&mut self, val: f64) {
+    pub fn _set_x(&mut self, val: f64) {
         self.x = val;
     }
 
-    pub fn set_y(&mut self, val: f64) {
+    pub fn add_x(&mut self, val: f64) {
+        self.x += val;
+    }
+
+    pub fn _set_y(&mut self, val: f64) {
         self.y = val;
+    }
+
+    pub fn add_y(&mut self, val: f64) {
+        self.y += val;
     }
 
     pub fn x(&self) -> f64 {
@@ -119,7 +127,7 @@ impl VecSpace {
     /// The input does not need to be a unit vector however it must be non-zero.
     #[inline]
     #[must_use]
-    pub fn to_angle(self) -> f64 {
+    pub fn _to_angle(self) -> f64 {
         //core::f32::math::atan2(self.y, self.x)
         self.y.atan2(self.x)
     }

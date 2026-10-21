@@ -12,15 +12,15 @@ mod ship;
 mod simulation;
 mod vec_space;
 
-use canvas::draw_grid;
+use canvas::draw_start;
 use controls::{Controls, KeyEvent};
 
-use macroquad::prelude::{BLACK, RED, clear_background, get_frame_time, next_frame};
-use masses::*;
+use macroquad::prelude::{get_frame_time, next_frame};
+//use masses::*;
 use scene::*;
 use simulation::*;
 
-use crate::{canvas::draw_circle, vec_space::VecSpace};
+//use crate::{canvas::draw_circle, vec_space::VecSpace};
 
 #[macroquad::main("Gravity Sim Experience")]
 async fn main() {
@@ -38,6 +38,7 @@ async fn main() {
             KeyEvent::NONE => (),
             KeyEvent::BREAK => break,
             KeyEvent::SceneID(id) => {
+                canvas::draw_reset();
                 (simulation, masses, ship) = set_scene(id);
                 controls = Controls::new(&ship);
             }
@@ -65,19 +66,10 @@ async fn main() {
         }
 
         // DRAW //
-        clear_background(BLACK);
-        draw_grid();
-        simulation.draw_text(&ship);
+        draw_start();
+        simulation.draw(&masses, &ship);
         masses.draw_masses(); // incl. prediction
         ship.draw(&masses); // incl. prediction
-
-        let angle = masses.orbit_angle(1);
-        let d: f64 = 30.;
-        let r = d.to_radians();
-
-        let x = VecSpace::new(0., km(370171.));
-        let y = x.rotate_angle(angle - r);
-        draw_circle(y, 22., RED);
 
         next_frame().await
     }

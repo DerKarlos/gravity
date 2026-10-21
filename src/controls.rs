@@ -15,10 +15,10 @@ pub enum KeyEvent {
 }
 
 pub struct Controls {
-    x_view: UpDown,
-    y_view: UpDown,
-    z_view: UpDown,
-    a_view: UpDown,
+    x_view: AddSub,
+    y_view: AddSub,
+    z_view: AddSub,
+    a_view: AddSub,
     predict_show: UpDown,
     burn_start: UpDown,
     burn_seconds: UpDown,
@@ -29,10 +29,10 @@ impl Controls {
     pub fn new(ship: &Ship) -> Controls {
         let (burn_start, burn_seconds, burn_a) = ship.get_burn_values();
         Controls {
-            x_view: UpDown::new("x_view", Formular::Add, 0., -9999., 50., 1.), // value, min, step, min
-            y_view: UpDown::new("y_view", Formular::Add, 0., -9999., 50., 1.),
-            z_view: UpDown::new("z_view", Formular::Add, 0.95, 0.0001, 1., 1.),
-            a_view: UpDown::new("a_view", Formular::Add, 0., -9999., 50., 1.),
+            x_view: AddSub::new("x_view", 50., 1.), // value, min, step, min
+            y_view: AddSub::new("y_view", 50., 1.),
+            z_view: AddSub::new("z_view", 1.0, 1.),
+            a_view: AddSub::new("a_view", 50., 1.),
             predict_show: UpDown::new("p_show", Formular::Add, 0., 0., 10., 1.),
             burn_start: UpDown::new("b_start", Formular::Mul, burn_start, 0.0001, 1., 0.001),
             burn_seconds: UpDown::new("b_secs", Formular::Mul, burn_seconds, 0.0000, 1., 0.001), // min = 0 = off
@@ -106,11 +106,16 @@ impl Controls {
         }
         masses.set_predict_show(actual);
 
-        draw_set_view(
-            self.x_view.up_down(KeyCode::A, KeyCode::D, delta_time),
-            self.y_view.up_down(KeyCode::W, KeyCode::S, delta_time),
-            self.z_view.up_down(KeyCode::E, KeyCode::Q, delta_time),
-            self.a_view.up_down(KeyCode::Z, KeyCode::C, delta_time), // Y on german keybpards! Do we need an Y or Z???
+        // draw_set_view(
+        //     self.y_view.up_down(KeyCode::W, KeyCode::S, delta_time),
+        //     self.z_view.up_down(KeyCode::E, KeyCode::Q, delta_time),
+        //     self.a_view.up_down(KeyCode::C, KeyCode::Z, delta_time), // Y on german keybpards! Do we need an Y or Z???
+        // );
+        draw_add_view(
+            self.x_view.add_sub(KeyCode::A, KeyCode::D, delta_time),
+            self.y_view.add_sub(KeyCode::W, KeyCode::S, delta_time),
+            self.z_view.add_sub(KeyCode::E, KeyCode::Q, delta_time),
+            self.a_view.add_sub(KeyCode::C, KeyCode::Z, delta_time), // Y on german keybpards! Do we need an Y or Z???
         );
     }
 }
@@ -225,5 +230,84 @@ impl UpDown {
         }
 
         self.actual
+    }
+}
+
+struct AddSub {
+    name: &'static str,
+    last_time: f64,
+    step: f64,
+    step_min: f64,
+    last_was_up: bool,
+}
+
+impl AddSub {
+    pub fn new(name: &'static str, step: f64, step_min: f64) -> AddSub {
+        AddSub {
+            name,
+            last_time: 0.,
+            step,
+            step_min,
+            last_was_up: true,
+        }
+    }
+
+    fn step_down(&mut self) {
+        self.step /= 2.;
+        if self.step < self.step_min {
+            self.step = self.step_min;
+        }
+        println!("{}: step_down {}", self.name, self.step);
+    }
+
+    // ramps the step, the values are changed from
+    // and returns its value for the given delta time to be added to the value
+    pub fn add_sub(&mut self, key_up: KeyCode, key_down: KeyCode, delta_time: f64) -> f64 {
+        let mut add = 0.;
+        if is_key_down(key_up) {
+            add = self.add(delta_time) * delta_time;
+            println!("{} add: {} / {}", self.name, add, self.step);
+        }
+        if is_key_down(key_down) {
+            add = self.sub(delta_time) * delta_time;
+            println!("{} sub: {} / {}", self.name, add, self.step);
+        }
+        add
+    }
+
+    // increases the step, the values are changed from
+    fn add(&mut self, delta_time: f64) -> f64 {
+        let time = get_time();
+        if time - self.last_time > KEY_NOT_PRESSED_TIME {
+            self.step_down();
+        }
+        self.last_time = time;
+        if self.last_was_up {
+            // 1 sec to double the value! If dt is 1 it doubles beause 1+1*1=2. If dt is smal, less happends
+            self.step *= 1. + 1. * delta_time;
+        } else {
+            self.last_was_up = true;
+            self.step_down();
+        }
+
+        // println!("up {} - {}", self.actual, self.step);
+        self.step
+    }
+    // decreases the step, the values are changed from
+    fn sub(&mut self, delta_time: f64) -> f64 {
+        let time = get_time();
+        if time - self.last_time > KEY_NOT_PRESSED_TIME {
+            self.step_down();
+        }
+        self.last_time = time;
+        if self.last_was_up {
+            self.last_was_up = false;
+            self.step_down();
+        } else {
+            self.step *= 1. + 1. * delta_time;
+        }
+
+        // println!("dn {} - {}", self.actual, self.step);
+        -self.step
     }
 }

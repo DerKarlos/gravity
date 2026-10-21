@@ -4,7 +4,8 @@
 use crate::canvas::*;
 use crate::simulation::*;
 use crate::vec_space::*;
-use macroquad::prelude::{BLACK, Color};
+use macroquad::color::GREEN;
+use macroquad::prelude::{Color, RED};
 
 //////////////////// Parameter ////////////////////
 
@@ -101,7 +102,7 @@ pub struct Mass {
     mass: f64,
     diameter: f64,
     orbits: usize,
-    orbit_seconds: f64,
+    lagrange: i8,
     color: Color,
     acceleration: VecSpace,
     velocity: VecSpace,
@@ -110,15 +111,15 @@ pub struct Mass {
 }
 
 impl Mass {
-    pub fn _zero() -> Mass {
+    pub fn zero() -> Mass {
         Mass {
             _name: String::from("ZERO"),
             index: 0,
             mass: 0.,
             diameter: 0.,
             orbits: 0,
-            orbit_seconds: 0.,
-            color: BLACK,
+            lagrange: 0,
+            color: GREEN,
             acceleration: VecSpace::ZERO,
             velocity: VecSpace::ZERO,
             position: VecSpace::ZERO,
@@ -127,14 +128,14 @@ impl Mass {
     }
 
     // pub for new ship
-    pub fn new(data: &MassData, orbits: Option<&mut Mass>, index: usize) -> Mass {
+    pub fn new(data: &MassData, orbits: Option<&mut Mass>, index: usize) -> (Mass, f64) {
         let mut mass = Mass {
             _name: data.name.to_string(),
             index,
             color: data.color,
             diameter: data.diameter,
             orbits: 0,
-            orbit_seconds: 0.,
+            lagrange: 0,
             mass: data.mass,
             position: VecSpace::ZERO,
             velocity: VecSpace::ZERO,
@@ -142,14 +143,15 @@ impl Mass {
             positions: [VecSpace::ZERO; PREDICT_COUNT],
         };
 
+        let mut orbit_seconds: f64 = 0.;
         if let Some(orbited_mass) = orbits {
             mass.orbits = orbited_mass.index;
             mass.position += VecSpace::new(data.orbit_radius, 0.); // + orbited_mass.position; done by set_v_orbit
-            mass.orbit_seconds = Self::set_v_orbit(&mut mass, orbited_mass, data.excentricity);
+            orbit_seconds = Self::set_v_orbit(&mut mass, orbited_mass, data.excentricity);
         };
 
         mass.positions[0] = mass.position;
-        mass
+        (mass, orbit_seconds)
     }
 
     pub fn position(&self) -> VecSpace {
@@ -158,6 +160,7 @@ impl Mass {
 
     pub fn set_position(&mut self, val: VecSpace) {
         self.position = val;
+        self.positions[0] = val; // always 0 ??? Only used for ship 20 Oct
     }
 
     pub fn velocity(&self) -> VecSpace {
@@ -228,6 +231,10 @@ impl Mass {
 
     // do it by thread_local ?
     pub fn draw(&self, positions_index: usize, predict_show: usize, predict_count: f64) {
+        // Invisible masses (also ship::ZERO)
+        if self.diameter == 0. {
+            return;
+        }
         let index = (positions_index + predict_show) % PREDICT_COUNT;
         draw_circle(
             self.positions[index],
@@ -294,7 +301,7 @@ impl Masses {
 
     pub fn add_at_place(&mut self, data: &MassData) -> usize {
         let index = self.masses.len();
-        let mass = Mass::new(data, None, index);
+        let (mass, _) = Mass::new(data, None, index);
         println!("add_at_place: {}", index);
         self.masses.push(mass);
         index
@@ -304,32 +311,38 @@ impl Masses {
         let index = self.masses.len();
         println!("set_in_orbit: {} {}", index, orbits_index);
         let orbits = &mut self.masses[orbits_index];
-        let mut mass = Mass::new(data, Some(orbits), index);
+        let (mut mass, orbit_seconds) = Mass::new(data, Some(orbits), index);
         mass.orbits = orbits_index;
-        self.maximal_orbit_radius = data.orbit_radius.max(self.maximal_orbit_radius);
-        //println!("max orbit: {}", self.maximal_orbit);
-        self.maximal_orbit_seconds = self.maximal_orbit_seconds.max(mass.orbit_seconds);
+        self.maximal_orbit_radius = data.orbit_radius.abs().max(self.maximal_orbit_radius);
+        println!("max orbit: {}", self.maximal_orbit_radius);
+        self.maximal_orbit_seconds = self.maximal_orbit_seconds.max(orbit_seconds);
         mass
     }
 
-    pub fn add_in_orbit(&mut self, data: &MassData, orbits: usize) -> usize {
+    pub fn add_in_orbit(&mut self, data: &MassData, orbits: usize, lagrange: i8) -> usize {
         let index = self.masses.len();
-        let mass = self.set_in_orbit(data, orbits);
+        let mut mass = self.set_in_orbit(data, orbits);
+        mass.lagrange = lagrange;
         self.masses.push(mass);
         index
     }
 
-    pub fn orbit_angle(&self, mass_index: usize) -> f64 {
+    pub fn orbit_relativ_position(&self, mass_index: usize, predict_show: usize) -> VecSpace {
         let orbited_index = self.masses[mass_index].orbits;
         let orbited_position = self.masses[orbited_index].position();
-        let mass_position = self.masses[mass_index].position();
+        let mass_position = self.masses[mass_index].positions[predict_show];
         let relativ = mass_position - orbited_position;
         // println!("{:?} {:?}", mass_position, orbited_position);
-        relativ.to_angle()
+        // relativ.to_angle()
+        relativ
     }
 
     pub fn set_radius(&self) {
         draw_set_maximal_orbit_radius(self.maximal_orbit_radius);
+    }
+
+    pub fn get_position(&self, index: usize) -> VecSpace {
+        self.masses[index].position
     }
 
     pub fn drag_at_position(&self, position: VecSpace, index: usize) -> VecSpace {
@@ -391,6 +404,18 @@ impl Masses {
                 self.predict_show as usize,
                 self.predict_count,
             );
+
+            // this should be in mass:
+            if mass.lagrange > 0 {
+                let position_index =
+                    (self.predict_show + self.positions_index as f64) % self.predict_count;
+                let relativ_position =
+                    self.orbit_relativ_position(mass.index, position_index as usize);
+                // only l4?l5 yet
+                let l4_angle: f64 = (60.0_f64).to_radians();
+                let l4_position = relativ_position.rotate_angle(l4_angle); // + mass.position();
+                draw_circle(l4_position, 22., RED);
+            }
         }
     }
 }

@@ -1,3 +1,12 @@
+DOING/TESTING/CHECKING:
+orbit um orbit
+Lagrange Kurs,
+
+
+TODO:
+Vector_Data & Orbit_Data
+
+--------------------
 Gravity Simulation (gravity, gravizen, attraction)
 
 And try a simple 2D engine: macroquad
