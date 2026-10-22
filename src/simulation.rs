@@ -20,6 +20,8 @@ pub struct Simulation {
     pub simulated_seconds_per_step: f64, // rename all step to frame ? No, a frame may execute multible frames
     run_mode: bool,
     follow: usize,
+    frame_seconds_left: f64,
+    speed: f64,
 }
 
 impl Simulation {
@@ -32,6 +34,8 @@ impl Simulation {
             simulated_seconds_per_step: 0.0,
             run_mode: true,
             follow: 0,
+            frame_seconds_left: 0.,
+            speed: 1.0,
         }
     }
 
@@ -44,8 +48,13 @@ impl Simulation {
     pub fn set_run_mode(&mut self, val: bool) {
         self.run_mode = val;
     }
-    pub fn set_follow(&mut self, val: usize) {
+    pub fn _set_follow(&mut self, val: usize) {
         self.follow = val;
+    }
+    pub fn add_speed(&mut self, val: f64) {
+        self.speed += val;
+        self.speed = self.speed.clamp(0.01, 2000.);
+        println!("speed: {}", self.speed);
     }
     pub fn set_seconds_per_orbit(&mut self, val: f64) {
         self.ui_time_per_orbit = val;
@@ -78,5 +87,24 @@ impl Simulation {
             draw_set_view_xy(position);
         }
         draw_hud(&self.text, ship.speed());
+    }
+
+    // SIMULATE //
+    //
+    // Simulate next position to be drawn in the next loop
+    pub fn iterate(&mut self, masses: &mut Masses, ship: &mut Ship, frame_seconds: f64) {
+        self.frame_seconds_left += frame_seconds;
+        while self.frame_seconds_left > SIMULATION_STEP_TIME {
+            self.frame_seconds_left -= SIMULATION_STEP_TIME / self.speed;
+
+            if self.run_mode() {
+                ship.move_one_step(&self, masses);
+                // also sets index to next step!
+                self.simulate_one_step(masses);
+            }
+
+            // Predict ship with new masses index or new burn values etc.
+            ship.predict_positions(&self, &masses);
+        }
     }
 }

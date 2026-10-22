@@ -30,8 +30,6 @@ async fn main() {
 
     let mut controls = Controls::new(&ship);
 
-    let mut frame_seconds_left = 0.0;
-
     loop {
         // INPUT //
         match controls.char_pressed(&mut simulation) {
@@ -44,26 +42,14 @@ async fn main() {
             }
         }
         let frame_seconds: f64 = (get_frame_time() as f64).min(1.0);
-        controls.key_down(&mut ship, &mut masses, frame_seconds);
+        if frame_seconds > SIMULATION_STEP_TIME {
+            simulation.add_speed(-frame_seconds * 50.);
+            println!("{}", frame_seconds)
+        }
+        controls.key_down(&mut simulation, &mut ship, &mut masses, frame_seconds);
 
         // SIMULATE //
-        //
-        // Simulate next position to be drawn in the next loop
-        frame_seconds_left += frame_seconds;
-
-        // Simulate nothing or one ore some simulation steps
-        while frame_seconds_left > SIMULATION_STEP_TIME {
-            frame_seconds_left -= SIMULATION_STEP_TIME;
-
-            if simulation.run_mode() {
-                ship.move_one_step(&simulation, &masses);
-                // also sets index to next step!
-                simulation.simulate_one_step(&mut masses);
-            }
-
-            // Predict ship with new masses index or new burn values etc.
-            ship.predict_positions(&simulation, &masses);
-        }
+        simulation.iterate(&mut masses, &mut ship, frame_seconds);
 
         // DRAW //
         draw_start();

@@ -81,8 +81,9 @@ pub fn set_scene(scene_id: i16) -> (Simulation, Masses, Ship) {
 
             let sun = masses.add_at_place(&sun_data);
             let earth = masses.add_in_orbit(&earth_data, sun, 0);
+            //let earth = masses.add_at_place(&earth_data);
             //t luna_data = MassData::orbiter("luna", RED, km(3476.), kg(7.349e22), km(370171.));
-            let test_data = MassData::orbiter("test", WHITE, km(1.), kg(0.), -km(170171.));
+            let test_data = MassData::orbiter("test", WHITE, km(1.), kg(0.), -km(1480111.));
             masses.add_in_orbit(&test_data, earth, 0);
 
             //ship.set_in_orbit(&mut masses, &ship_data.mul_radius(500.), earth);
@@ -95,7 +96,7 @@ pub fn set_scene(scene_id: i16) -> (Simulation, Masses, Ship) {
             //        step_down 0.08034150634335382
             //        b_secs down: 4843.84931330225 / 0.08034150634335382
 
-            simulation.set_follow(1);
+            //simulation.set_follow(1);
             simulation.set_run_mode(false);
         }
 

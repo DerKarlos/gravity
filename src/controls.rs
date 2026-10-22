@@ -19,6 +19,7 @@ pub struct Controls {
     y_view: AddSub,
     z_view: AddSub,
     a_view: AddSub,
+    speed: AddSub,
     predict_show: UpDown,
     burn_start: UpDown,
     burn_seconds: UpDown,
@@ -29,10 +30,11 @@ impl Controls {
     pub fn new(ship: &Ship) -> Controls {
         let (burn_start, burn_seconds, burn_a) = ship.get_burn_values();
         Controls {
-            x_view: AddSub::new("x_view", 50., 1.), // value, min, step, min
-            y_view: AddSub::new("y_view", 50., 1.),
-            z_view: AddSub::new("z_view", 1.0, 1.),
-            a_view: AddSub::new("a_view", 50., 1.),
+            x_view: AddSub::new("x_view", 50., 1., 1000.), // value, min, step, min
+            y_view: AddSub::new("y_view", 50., 1., 1000.),
+            z_view: AddSub::new("z_view", 1.0, 1., 1000.),
+            a_view: AddSub::new("a_view", 50., 1., 1000.),
+            speed: AddSub::new("speed", 1., 0.1, 10.),
             predict_show: UpDown::new("p_show", Formular::Add, 0., 0., 10., 1.),
             burn_start: UpDown::new("b_start", Formular::Mul, burn_start, 0.0001, 1., 0.001),
             burn_seconds: UpDown::new("b_secs", Formular::Mul, burn_seconds, 0.0000, 1., 0.001), // min = 0 = off
@@ -66,7 +68,13 @@ impl Controls {
         KeyEvent::NONE
     }
 
-    pub fn key_down(&mut self, ship: &mut Ship, masses: &mut Masses, delta_time: f64) {
+    pub fn key_down(
+        &mut self,
+        simulation: &mut Simulation,
+        ship: &mut Ship,
+        masses: &mut Masses,
+        delta_time: f64,
+    ) {
         let (_, _, burn_acceleration) = ship.get_burn_values();
         if is_key_down(KeyCode::Space) {
             ship.accelerate_ahead(SIMULATION_STEP_TIME * burn_acceleration);
@@ -106,17 +114,13 @@ impl Controls {
         }
         masses.set_predict_show(actual);
 
-        // draw_set_view(
-        //     self.y_view.up_down(KeyCode::W, KeyCode::S, delta_time),
-        //     self.z_view.up_down(KeyCode::E, KeyCode::Q, delta_time),
-        //     self.a_view.up_down(KeyCode::C, KeyCode::Z, delta_time), // Y on german keybpards! Do we need an Y or Z???
-        // );
         draw_add_view(
             self.x_view.add_sub(KeyCode::A, KeyCode::D, delta_time),
             self.y_view.add_sub(KeyCode::W, KeyCode::S, delta_time),
             self.z_view.add_sub(KeyCode::E, KeyCode::Q, delta_time),
             self.a_view.add_sub(KeyCode::C, KeyCode::Z, delta_time), // Y on german keybpards! Do we need an Y or Z???
         );
+        simulation.add_speed(self.speed.add_sub(KeyCode::T, KeyCode::G, delta_time));
     }
 }
 
@@ -237,26 +241,26 @@ struct AddSub {
     name: &'static str,
     last_time: f64,
     step: f64,
-    step_min: f64,
+    min: f64,
+    max: f64,
     last_was_up: bool,
 }
 
 impl AddSub {
-    pub fn new(name: &'static str, step: f64, step_min: f64) -> AddSub {
+    pub fn new(name: &'static str, step: f64, min: f64, max: f64) -> AddSub {
         AddSub {
             name,
             last_time: 0.,
             step,
-            step_min,
+            min,
+            max,
             last_was_up: true,
         }
     }
 
     fn step_down(&mut self) {
         self.step /= 2.;
-        if self.step < self.step_min {
-            self.step = self.step_min;
-        }
+        self.step = self.step.clamp(self.min, self.max);
         println!("{}: step_down {}", self.name, self.step);
     }
 
