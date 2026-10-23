@@ -5,6 +5,7 @@ Lagrange Kurs,
 
 TODO:
 Vector_Data & Orbit_Data
+add_sub logic? cyclic? write &value?
 
 --------------------
 Gravity Simulation (gravity, gravizen, attraction)

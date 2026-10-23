@@ -31,8 +31,14 @@ async fn main() {
     let mut controls = Controls::new(&ship);
 
     loop {
+        // FRAMES //
+        let frame_time: f64 = (get_frame_time() as f64).min(1.0);
+        if frame_time > INTENDED_FRAME_TIME {
+            simulation.reduce_iterations();
+            println!("{}", frame_time)
+        }
         // INPUT //
-        match controls.char_pressed(&mut simulation) {
+        match controls.check_chars(&mut simulation) {
             KeyEvent::NONE => (),
             KeyEvent::BREAK => break,
             KeyEvent::SceneID(id) => {
@@ -41,15 +47,10 @@ async fn main() {
                 controls = Controls::new(&ship);
             }
         }
-        let frame_seconds: f64 = (get_frame_time() as f64).min(1.0);
-        if frame_seconds > SIMULATION_STEP_TIME {
-            simulation.add_speed(-frame_seconds * 50.);
-            println!("{}", frame_seconds)
-        }
-        controls.key_down(&mut simulation, &mut ship, &mut masses, frame_seconds);
+        controls.check_keys(&mut simulation, &mut ship, &mut masses, frame_time);
 
-        // SIMULATE //
-        simulation.iterate(&mut masses, &mut ship, frame_seconds);
+        // SIMULATE / ITERATE //
+        simulation.iterate(&mut masses, &mut ship, frame_time);
 
         // DRAW //
         draw_start();

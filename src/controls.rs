@@ -42,7 +42,7 @@ impl Controls {
         }
     }
 
-    pub fn char_pressed(&self, simulation: &mut Simulation) -> KeyEvent {
+    pub fn check_chars(&self, simulation: &mut Simulation) -> KeyEvent {
         if let Some(char) = get_char_pressed() {
             // println!("pressed char {:?}!", char);
             match char {
@@ -68,7 +68,7 @@ impl Controls {
         KeyEvent::NONE
     }
 
-    pub fn key_down(
+    pub fn check_keys(
         &mut self,
         simulation: &mut Simulation,
         ship: &mut Ship,
@@ -77,10 +77,10 @@ impl Controls {
     ) {
         let (_, _, burn_acceleration) = ship.get_burn_values();
         if is_key_down(KeyCode::Space) {
-            ship.accelerate_ahead(SIMULATION_STEP_TIME * burn_acceleration);
+            ship.accelerate_ahead(burn_acceleration * delta_time);
         }
         if is_key_down(KeyCode::Backspace) {
-            ship.accelerate_ahead(-SIMULATION_STEP_TIME * burn_acceleration)
+            ship.accelerate_ahead(-burn_acceleration * delta_time)
         }
 
         ship.set_start_seconds(
@@ -120,7 +120,7 @@ impl Controls {
             self.z_view.add_sub(KeyCode::E, KeyCode::Q, delta_time),
             self.a_view.add_sub(KeyCode::C, KeyCode::Z, delta_time), // Y on german keybpards! Do we need an Y or Z???
         );
-        simulation.add_speed(self.speed.add_sub(KeyCode::T, KeyCode::G, delta_time));
+        simulation.add_iterations(self.speed.add_sub(KeyCode::T, KeyCode::G, delta_time));
     }
 }
 

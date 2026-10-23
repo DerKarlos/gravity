@@ -107,7 +107,7 @@ pub struct Mass {
     acceleration: VecSpace,
     velocity: VecSpace,
     position: VecSpace,
-    positions: [VecSpace; PREDICT_COUNT],
+    positions: [VecSpace; PREDICT_COUNT], // rename to future_positions ???
 }
 
 impl Mass {
@@ -333,16 +333,15 @@ impl Masses {
         let mass_position = self.masses[mass_index].positions[predict_show];
         let relativ = mass_position - orbited_position;
         // println!("{:?} {:?}", mass_position, orbited_position);
-        // relativ.to_angle()
         relativ
     }
 
-    pub fn set_radius(&self) {
+    pub fn set_radius_to_draw(&self) {
         draw_set_maximal_orbit_radius(self.maximal_orbit_radius);
     }
 
     pub fn get_position(&self, index: usize) -> VecSpace {
-        self.masses[index].position
+        self.masses[index].positions[self.positions_index()]
     }
 
     pub fn drag_at_position(&self, position: VecSpace, index: usize) -> VecSpace {
@@ -368,18 +367,17 @@ impl Masses {
             }
         }
 
-        // Move the masses at the head of the prediction
+        // Move the masses at the draw-index of the prediction-positions
         for mass in &mut self.masses {
             mass.move_seconds(seconds, self.positions_index);
         }
     }
 
-    // initially simulate all the future positinos
+    // initially simulate the future positinos
     pub fn predict_positions(&mut self, simulation: &mut Simulation) {
         // All masses are there, calculate the simulation seconds by the maximal orbit time (as ui-time!)
-        simulation.simulated_seconds_per_step = self.maximal_orbit_seconds()
-            / SIMULATION_STEPS_PER_UI_TIME
-            / simulation.ui_time_per_orbit;
+        simulation.simulated_seconds_per_step =
+            self.maximal_orbit_seconds() / INTENDED_FPS / simulation.ui_time_per_orbit;
 
         for _ in 1..PREDICT_COUNT {
             self.inc_position();
@@ -389,7 +387,7 @@ impl Masses {
     }
 
     pub fn inc_position(&mut self) {
-        self.positions_index += 1;
+        self.positions_index += 1; // make next fn???
         self.positions_index %= PREDICT_COUNT;
     }
 
@@ -411,7 +409,7 @@ impl Masses {
                     (self.predict_show + self.positions_index as f64) % self.predict_count;
                 let relativ_position =
                     self.orbit_relativ_position(mass.index, position_index as usize);
-                // only l4?l5 yet
+                // only L4?L5 yet
                 let l4_angle: f64 = (60.0_f64).to_radians();
                 let l4_position = relativ_position.rotate_angle(l4_angle); // + mass.position();
                 draw_circle(l4_position, 22., RED);

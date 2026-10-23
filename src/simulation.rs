@@ -5,9 +5,8 @@ use crate::canvas::*;
 use crate::masses::*;
 use crate::ship::*;
 
-// About like the framerate in Hz, but will be checked and repeated if needed
-pub const SIMULATION_STEPS_PER_UI_TIME: f64 = 50.; // per secound
-pub const SIMULATION_STEP_TIME: f64 = 1. / SIMULATION_STEPS_PER_UI_TIME;
+pub const INTENDED_FPS: f64 = 50.; // frames per (ui) secound
+pub const INTENDED_FRAME_TIME: f64 = 1. / INTENDED_FPS;
 
 // ------------------- MASSES STRUCT/CLASS -------------------
 
@@ -21,7 +20,7 @@ pub struct Simulation {
     run_mode: bool,
     follow: usize,
     frame_seconds_left: f64,
-    speed: f64,
+    iterations: f64, // iteration steps per render frame
 }
 
 impl Simulation {
@@ -35,7 +34,7 @@ impl Simulation {
             run_mode: true,
             follow: 0,
             frame_seconds_left: 0.,
-            speed: 1.0,
+            iterations: 1.0,
         }
     }
 
@@ -48,14 +47,22 @@ impl Simulation {
     pub fn set_run_mode(&mut self, val: bool) {
         self.run_mode = val;
     }
-    pub fn _set_follow(&mut self, val: usize) {
+    pub fn set_follow(&mut self, val: usize) {
         self.follow = val;
     }
-    pub fn add_speed(&mut self, val: f64) {
-        self.speed += val;
-        self.speed = self.speed.clamp(0.01, 2000.);
-        println!("speed: {}", self.speed);
+    pub fn add_iterations(&mut self, val: f64) {
+        self.iterations += val;
+        self.iterations = self.iterations.clamp(0.01, 2000.);
+        //println!("add_speed: {}", self.speed);
     }
+
+    pub fn reduce_iterations(&mut self) {
+        if self.iterations > 50. {
+            self.iterations /= 2.;
+        }
+        println!("mul_speed: {}", self.iterations);
+    }
+
     pub fn set_seconds_per_orbit(&mut self, val: f64) {
         self.ui_time_per_orbit = val;
     }
@@ -63,15 +70,13 @@ impl Simulation {
         self.text = text.to_string();
     }
 
-    pub fn set_orbit_seconds(&mut self, masses: &Masses) {
+    pub fn calc_orbit_seconds(&mut self, masses: &Masses) {
         // All masses are there, calculate the simulation seconds by the maximal ui-orbit-time
         self.simulated_seconds_per_step =
-            masses.maximal_orbit_seconds() / SIMULATION_STEPS_PER_UI_TIME / self.ui_time_per_orbit;
+            masses.maximal_orbit_seconds() / INTENDED_FPS / self.ui_time_per_orbit;
     }
 
-    // initially simulate all the future positinos
-
-    pub fn simulate_one_step(&mut self, masses: &mut Masses) {
+    pub fn iterate_one_step(&mut self, masses: &mut Masses) {
         masses.drag_and_move(self.simulated_seconds_per_step);
         masses.inc_position();
         self.simulated_seconds += self.simulated_seconds_per_step;
@@ -89,21 +94,20 @@ impl Simulation {
         draw_hud(&self.text, ship.speed());
     }
 
-    // SIMULATE //
-    //
-    // Simulate next position to be drawn in the next loop
+    // SIMULATE / ITERATE //
+    // Simulate / iterate to the next position to be drawn in the next loop
     pub fn iterate(&mut self, masses: &mut Masses, ship: &mut Ship, frame_seconds: f64) {
         self.frame_seconds_left += frame_seconds;
-        while self.frame_seconds_left > SIMULATION_STEP_TIME {
-            self.frame_seconds_left -= SIMULATION_STEP_TIME / self.speed;
+        while self.frame_seconds_left > INTENDED_FRAME_TIME {
+            self.frame_seconds_left -= INTENDED_FRAME_TIME / self.iterations;
 
             if self.run_mode() {
                 ship.move_one_step(&self, masses);
-                // also sets index to next step!
-                self.simulate_one_step(masses);
+                // also sets index to next step!:
+                self.iterate_one_step(masses);
             }
 
-            // Predict ship with new masses index or new burn values etc.
+            // Predict ship with new masses-posiitons-index or new burn-values etc.
             ship.predict_positions(&self, &masses);
         }
     }

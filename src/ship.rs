@@ -1,3 +1,4 @@
+use crate::canvas::draw_set_view_angle;
 use crate::masses::*;
 use crate::simulation::*;
 use crate::vec_space::*;
@@ -11,8 +12,8 @@ pub struct Ship {
     burn_acceleration: f64,
     position: VecSpace,
     velocity: VecSpace,
-    _rotation_start: f64,
-    rotation_a: usize,
+    _start_angle_in_orbit: f64,
+    rotation_a: usize, // why is this done in ship??? move to masses?
     rotation_b: usize,
 }
 
@@ -25,7 +26,7 @@ impl Ship {
             burn_acceleration: A_BURN,
             position: VecSpace::ZERO,
             velocity: VecSpace::ZERO,
-            _rotation_start: 0.,
+            _start_angle_in_orbit: 0.,
             rotation_a: 0,
             rotation_b: 0,
         }
@@ -39,8 +40,8 @@ impl Ship {
         self.velocity.length()
     }
 
-    pub fn _set_rotation(&mut self, start: f64, a: usize, b: usize) {
-        self._rotation_start = start;
+    pub fn set_rotation(&mut self, start: f64, a: usize, b: usize) {
+        self._start_angle_in_orbit = start;
         self.rotation_a = a;
         self.rotation_b = b;
     }
@@ -62,7 +63,16 @@ impl Ship {
         self.burn(simulation, simulation.simulated_seconds);
 
         self.mass
-            .move_seconds(simulation.simulated_seconds_per_step, 0); // moves always at index 0
+            .move_seconds(simulation.simulated_seconds_per_step, 0); // ship moves always at index 0
+
+        let rotate = self.rotation_a != self.rotation_b;
+        if rotate {
+            let position_a = masses.get_position(self.rotation_a);
+            let position_b = masses.get_position(self.rotation_b);
+            let angle = (position_a - position_b).to_angle().to_degrees();
+            //println!("angle: {}", angle);
+            draw_set_view_angle(-angle);
+        }
     }
 
     fn burn(&mut self, simulation: &Simulation, seconds: f64) {
@@ -88,8 +98,6 @@ impl Ship {
     // prediktor for ship: save, predict, restore
     // (the ship is moved independend of masses positions_index)
     pub fn predict_positions(&mut self, simulation: &Simulation, masses: &Masses) {
-        let rotate = self.rotation_a == self.rotation_b;
-
         self.position = self.mass.position();
         self.velocity = self.mass.velocity();
 
@@ -104,12 +112,6 @@ impl Ship {
 
             self.mass
                 .move_seconds(simulation.simulated_seconds_per_step, move_index);
-
-            if rotate {
-                //let position_a = masses.get_position_from_index(self.rotation_a, move_index);
-                //let position_b = masses.get_position_from_index(self.rotation_b, move_index);
-                //let angle = position_a.angle_to(position_b);
-            }
 
             drag_index += 1;
             drag_index %= PREDICT_COUNT;
