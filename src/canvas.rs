@@ -180,7 +180,7 @@ pub fn draw_hud(text: &String, ship_speed: f64) {
 
 pub fn draw_set_view_xy(val: VecSpace) {
     let mut canvas = canvas().lock().unwrap();
-    canvas.view_xy = canvas.to_unshifted_pixel(val) * -1.;
+    canvas.view_xy = canvas.to_unshifted_pixel(val);
 }
 
 pub fn draw_set_view_z(val: f64) {

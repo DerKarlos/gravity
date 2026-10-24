@@ -47,7 +47,7 @@ impl Ship {
     }
 
     pub fn set_burn(&mut self, start: f64, seconds: f64) {
-        self.burn_start = start;
+        self.burn_start = start + 0.01;
         self.burn_seconds = seconds;
     }
 
@@ -69,7 +69,7 @@ impl Ship {
         if rotate {
             let position_a = masses.get_position(self.rotation_a);
             let position_b = masses.get_position(self.rotation_b);
-            let angle = (position_a - position_b).to_angle().to_degrees();
+            let angle = (position_b - position_a).to_angle().to_degrees();
             //println!("angle: {}", angle);
             draw_set_view_angle(-angle);
         }

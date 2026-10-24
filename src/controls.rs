@@ -20,7 +20,7 @@ pub struct Controls {
     z_view: AddSub,
     a_view: AddSub,
     speed: AddSub,
-    predict_show: UpDown,
+    predict_show: AddSub,
     burn_start: UpDown,
     burn_seconds: UpDown,
     burn_acceleration: UpDown,
@@ -35,14 +35,15 @@ impl Controls {
             z_view: AddSub::new("z_view", 1.0, 1., 1000.),
             a_view: AddSub::new("a_view", 50., 1., 1000.),
             speed: AddSub::new("speed", 1., 0.1, 10.),
-            predict_show: UpDown::new("p_show", Formular::Add, 0., 0., 10., 1.),
+            predict_show: AddSub::new("p_show", 10., 1., PREDICT_COUNT as f64),
+            // predict_show: UpDown::new("p_show", Formular::Add, 0., 0., 10., 1.),
             burn_start: UpDown::new("b_start", Formular::Mul, burn_start, 0.0001, 1., 0.001),
             burn_seconds: UpDown::new("b_secs", Formular::Mul, burn_seconds, 0.0000, 1., 0.001), // min = 0 = off
             burn_acceleration: UpDown::new("power", Formular::Mul, burn_a, 0.0001, 1., 0.001),
         }
     }
 
-    pub fn check_chars(&self, simulation: &mut Simulation) -> KeyEvent {
+    pub fn check_chars(&self, simulation: &mut Simulation, ship: &Ship) -> KeyEvent {
         if let Some(char) = get_char_pressed() {
             // println!("pressed char {:?}!", char);
             match char {
@@ -51,6 +52,14 @@ impl Controls {
                     // KeyCode::Enter
                     simulation.toggle_run_mode();
                     //println!(  "planing_mode: {} {}",simulation.run_mode, simulation.simulated_world_seconds );
+                }
+
+                'ß' => {
+                    let (burn_start, burn_seconds, burn_acceleration) = ship.get_burn_values();
+                    println!(
+                        "burn start at {}s for {}s, a={}",
+                        burn_start, burn_seconds, burn_acceleration
+                    );
                 }
 
                 '0'..='9' | 'r' => {
@@ -62,7 +71,7 @@ impl Controls {
                     println!("scene = {}", id);
                     return KeyEvent::SceneID(id);
                 }
-                _ => (), // println!("Char not used: {:?}!", char),
+                _ => (), // println!("Char not used: {:?}!", char),  //  (),
             }
         }
         KeyEvent::NONE
@@ -106,13 +115,12 @@ impl Controls {
             masses.mul_predict_count(0.996);
         }
 
-        let mut actual = self
-            .predict_show
-            .up_down(KeyCode::I, KeyCode::K, delta_time);
-        if actual >= masses.predict_count - 1. {
-            actual = masses.predict_count - 1.;
-        }
-        masses.set_predict_show(actual);
+        //  .up_down(KeyCode::I, KeyCode::K, delta_time);
+        //masses.set_predict_show(actual);
+        masses.add_predict_show(
+            self.predict_show
+                .add_sub(KeyCode::I, KeyCode::K, delta_time),
+        );
 
         draw_add_view(
             self.x_view.add_sub(KeyCode::A, KeyCode::D, delta_time),
@@ -126,7 +134,7 @@ impl Controls {
 
 #[derive(Clone, Copy)]
 enum Formular {
-    Add,
+    _Add,
     Mul,
 }
 
@@ -202,7 +210,7 @@ impl UpDown {
 
         match self.formular {
             Formular::Mul => self.actual *= 1. + 1. * delta_time * self.step,
-            Formular::Add => self.actual += delta_time * self.step,
+            Formular::_Add => self.actual += delta_time * self.step,
         }
 
         self.actual
@@ -225,7 +233,7 @@ impl UpDown {
         // self.actual *= 1. - 1. * delta_time * self.step;
         match self.formular {
             Formular::Mul => self.actual *= 1. - 1. * delta_time * self.step,
-            Formular::Add => self.actual -= delta_time * self.step,
+            Formular::_Add => self.actual -= delta_time * self.step,
         }
 
         if self.actual < self.actual_min {

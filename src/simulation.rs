@@ -60,7 +60,7 @@ impl Simulation {
         if self.iterations > 50. {
             self.iterations /= 2.;
         }
-        println!("mul_speed: {}", self.iterations);
+        // println!("iterations: {}", self.iterations);
     }
 
     pub fn set_seconds_per_orbit(&mut self, val: f64) {
@@ -88,8 +88,8 @@ impl Simulation {
 
     pub fn draw(&mut self, masses: &Masses, ship: &Ship) {
         if self.follow > 0 {
-            let position = masses.get_position(self.follow);
-            draw_set_view_xy(position);
+            let position_of_followed_mass = masses.get_position_draw(self.follow);
+            draw_set_view_xy(position_of_followed_mass * -1.);
         }
         draw_hud(&self.text, ship.speed());
     }

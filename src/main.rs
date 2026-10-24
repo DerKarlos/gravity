@@ -32,13 +32,13 @@ async fn main() {
 
     loop {
         // FRAMES //
-        let frame_time: f64 = (get_frame_time() as f64).min(1.0);
+        let frame_time: f64 = (get_frame_time() as f64).min(1.0123);
         if frame_time > INTENDED_FRAME_TIME {
             simulation.reduce_iterations();
-            println!("{}", frame_time)
+            // println!("frame_time: {}", frame_time)
         }
         // INPUT //
-        match controls.check_chars(&mut simulation) {
+        match controls.check_chars(&mut simulation, &ship) {
             KeyEvent::NONE => (),
             KeyEvent::BREAK => break,
             KeyEvent::SceneID(id) => {

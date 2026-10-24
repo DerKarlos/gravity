@@ -13,8 +13,8 @@ pub fn set_scene(scene_id: i16) -> (Simulation, Masses, Ship) {
     let mut ship = Ship::default();
 
     // some masses
-    let sun_data = MassData::fixstar("sun", YELLOW, km(1.3914e6), mass_sol(0.01)); //ttt
-    let sun_dat2 = MassData::orbiter("su2", GOLD, km(1.3914e6), mass_sol(1.), au(0.5));
+    let sol_data = MassData::fixstar("sun", YELLOW, km(1.3914e6), mass_sol(1.0));
+    let sun_data = MassData::orbiter("su2", GOLD, km(1.3914e6), mass_sol(0.7), au(0.5));
     let earth_data = MassData::orbiter("earth", BLUE, km(12756.32), mass_earth(1.), au(1.));
     let big_dat1 = MassData::orbiter("big1", BLUE, km(12756.32), mass_sol(0.01), au(0.1));
     let big_dat2 = MassData::ellipse("big2", SKYBLUE, km(12756.32), mass_sol(0.01), au(0.15), 0.3);
@@ -29,13 +29,13 @@ pub fn set_scene(scene_id: i16) -> (Simulation, Masses, Ship) {
     match scene_id {
         1 => {
             simulation.set_text("double star");
-            let sun = masses.add_at_place(&sun_data);
-            let _s2 = masses.add_in_orbit(&sun_dat2, sun, 0);
+            let sun = masses.add_at_place(&sol_data);
+            let _s2 = masses.add_in_orbit(&sun_data, sun, 0);
         }
 
         2 => {
             simulation.set_text("Sun and two planets");
-            let sun = masses.add_at_place(&sun_data);
+            let sun = masses.add_at_place(&sol_data);
             masses.add_in_orbit(&big_dat1, sun, 0);
             masses.add_in_orbit(&big_dat2, sun, 0);
             simulation.set_run_mode(false);
@@ -43,16 +43,18 @@ pub fn set_scene(scene_id: i16) -> (Simulation, Masses, Ship) {
 
         3 => {
             simulation.set_text("Sun, Earth");
-            let sun = masses.add_at_place(&sun_data);
+            let sun = masses.add_at_place(&sol_data);
             masses.add_in_orbit(&earth_data, sun, 0);
         }
 
         4 => {
             simulation.set_text("Sun, Earth & Luna +");
-            let sun = masses.add_at_place(&sun_data);
-            masses.add_in_orbit(&comet_data, sun, 0);
-            let earth = masses.add_in_orbit(&earth_data, sun, 0);
-            masses.add_in_orbit(&luna_data, earth, 0);
+            let sun0 = masses.add_at_place(&sol_data);
+            masses.add_in_orbit(&comet_data, sun0, 0);
+            let earth2 = masses.add_in_orbit(&earth_data, sun0, 0);
+            let _luna3 = masses.add_in_orbit(&luna_data, earth2, 0);
+            // simulation.set_follow(earth2);
+            // ship.set_rotation(0., earth2, _luna3);
         }
 
         5 => {
@@ -65,22 +67,38 @@ pub fn set_scene(scene_id: i16) -> (Simulation, Masses, Ship) {
 
         6 => {
             simulation.set_text("Moon 8 loop (realy?)");
-            let earth = masses.add_at_place(&earth_data);
-            let luna = masses.add_in_orbit(&luna_data.mul_radius(0.1), earth, 0); // todo: real values ???
-            ship.set_in_orbit(&mut masses, &ship_data.mul_radius(20.), earth); // 26.6 The real 300km are not visible
-            ship.set_burn(3444., 13432.);
+            let earth0 = masses.add_at_place(&earth_data);
+            let luna1 = masses.add_in_orbit(&luna_data.mul_radius(0.1), earth0, 0); // todo: real values ???
+            ship.set_in_orbit(&mut masses, &ship_data.mul_radius(20.), earth0); // 26.6 The real 300km are not visible
+            //ship.set_burn(3444., 13432.);
+            //ship.set_burn(0., 13432.);
+            ship.set_burn(3548., 13432.);
+            //ship.set_burn_acceleration(0.3);
 
-            ship.set_rotation(0., earth, luna);
+            ship.set_rotation(0., earth0, luna1);
+            //simulation.set_follow(luna1);
             simulation.set_run_mode(false);
+            masses.set_predict(300., 710.);
+        }
+
+        7 => {
+            simulation.set_text("Artemis II?");
+            let earth0 = masses.add_at_place(&earth_data);
+            let luna1 = masses.add_in_orbit(&luna_data.mul_radius(0.1), earth0, 0);
+            ship.set_in_orbit(&mut masses, &ship_data.mul_radius(20.), earth0);
+            ship.set_burn(3548., 13432.);
+            ship.set_rotation(0., earth0, luna1);
+            simulation.set_run_mode(false);
+            masses.set_predict(300., 211.);
         }
 
         // Idee: Flyby führt zu langsammer/schneller/andere Richtung/bis zu 180 grad umkehr
         //
-        7 => {
+        9 => {
             // https://en.wikipedia.org/wiki/Lagrange_point
             simulation.set_text("Lagrange 4/5");
 
-            let sun0 = masses.add_at_place(&sun_data);
+            let sun0 = masses.add_at_place(&sol_data);
             let earth1 = masses.add_in_orbit(&earth_data, sun0, 0);
             //t luna_data = MassData::orbiter("luna", RED, km(3476.), kg(7.349e22), km(370171.));
             let test_data = MassData::orbiter("test", WHITE, km(1.), kg(0.), km(5. * 370171.));

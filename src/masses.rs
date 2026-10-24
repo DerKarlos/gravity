@@ -16,20 +16,28 @@ pub const GRAVITY_CONSTANT_OF_EARTH: f64 = 6.67384e-11; // m^3/(kg*s^2)
 // ------------------- SI UNIT VALUE KONVERT OPTIONS  -------------------
 
 // distances
+
+/// Kilometer to SI meter
 pub fn km(km: f64) -> f64 {
     km * 1000.
 }
+
+/// Astronomical units to SI meter
 pub fn au(au: f64) -> f64 {
-    au * 149_597_870_700.0 // m per Astronomic Unit
+    au * 149_597_870_700.0
 }
 
-// masses (wheight)
+/// Masses in kilogram (wheight), just to show the SI unit
 pub fn kg(kg: f64) -> f64 {
     kg
 }
+
+/// Earth masses to SI kilogram
 pub fn mass_earth(earth: f64) -> f64 {
     earth * 5.974e24
 }
+
+/// Sol/Sun masses to SI kilogram
 pub fn mass_sol(sol: f64) -> f64 {
     sol * 1.989e30
 }
@@ -107,7 +115,7 @@ pub struct Mass {
     acceleration: VecSpace,
     velocity: VecSpace,
     position: VecSpace,
-    positions: [VecSpace; PREDICT_COUNT], // rename to future_positions ???
+    positions: [VecSpace; PREDICT_COUNT], // rename to future_positions ??? no, thy are real future positions
 }
 
 impl Mass {
@@ -288,6 +296,17 @@ impl Masses {
         self.maximal_orbit_seconds
     }
 
+    pub fn set_predict(&mut self, count: f64, show: f64) {
+        self.predict_count = count;
+        self.predict_show = show;
+        //if self.predict_count > PREDICT_COUNT as f64 {
+        //    self.predict_count = PREDICT_COUNT as f64;
+        //};
+        //if self.predict_show > PREDICT_COUNT as f64 {
+        //    self.predict_show = PREDICT_COUNT as f64;
+        //};
+    }
+
     pub fn mul_predict_count(&mut self, fakt: f64) {
         self.predict_count *= fakt;
         if self.predict_count > PREDICT_COUNT as f64 {
@@ -295,8 +314,15 @@ impl Masses {
         };
     }
 
-    pub fn set_predict_show(&mut self, val: f64) {
-        self.predict_show = val;
+    pub fn _set_predict_show(&mut self, val: f64) {
+        self.predict_show = val; // todo: use .min
+        if self.predict_show >= self.predict_count - 1. {
+            self.predict_show = self.predict_count - 1.;
+        }
+    }
+
+    pub fn add_predict_show(&mut self, val: f64) {
+        self.predict_show += val;
     }
 
     pub fn add_at_place(&mut self, data: &MassData) -> usize {
@@ -342,6 +368,11 @@ impl Masses {
 
     pub fn get_position(&self, index: usize) -> VecSpace {
         self.masses[index].positions[self.positions_index()]
+    }
+
+    pub fn get_position_draw(&self, mass_index: usize) -> VecSpace {
+        let position_index = (self.positions_index + self.predict_show as usize) % PREDICT_COUNT;
+        self.masses[mass_index].positions[position_index]
     }
 
     pub fn drag_at_position(&self, position: VecSpace, index: usize) -> VecSpace {
