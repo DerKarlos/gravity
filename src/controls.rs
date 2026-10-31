@@ -1,6 +1,5 @@
 use crate::canvas::*;
 use crate::mass::*;
-use crate::masses::*;
 use crate::ship::*;
 use crate::simulation::*;
 // for keyboard
@@ -78,13 +77,7 @@ impl Controls {
         KeyEvent::NONE
     }
 
-    pub fn check_keys(
-        &mut self,
-        simulation: &mut Simulation,
-        ship: &mut Ship,
-        masses: &mut Masses,
-        delta_time: f64,
-    ) {
+    pub fn check_keys(&mut self, simulation: &mut Simulation, ship: &mut Ship, delta_time: f64) {
         let (_, _, burn_acceleration) = ship.burn_values();
         if is_key_down(KeyCode::Space) {
             ship.accelerate_ahead(burn_acceleration * delta_time);
@@ -110,18 +103,20 @@ impl Controls {
         ));
 
         if is_key_down(KeyCode::O) {
-            masses.mul_predict_count(1.003);
+            simulation.masses.mul_predict_count(1.003);
         }
         if is_key_down(KeyCode::L) {
-            masses.mul_predict_count(0.996);
+            simulation.masses.mul_predict_count(0.996);
         }
 
         //  .up_down(KeyCode::I, KeyCode::K, delta_time);
         //masses.set_predict_show(actual);
-        masses.add_predict_show(
-            self.predict_show
-                .add_sub(KeyCode::I, KeyCode::K, delta_time),
-        );
+        simulation
+            .masses
+            .add_predict_show(
+                self.predict_show
+                    .add_sub(KeyCode::I, KeyCode::K, delta_time),
+            );
 
         draw_add_view(
             self.x_view.add_sub(KeyCode::A, KeyCode::D, delta_time),

@@ -18,6 +18,7 @@ pub struct Simulation {
     run_mode: bool,
     frame_seconds_left: f64,
     iterations_per_frame: f64,
+    pub masses: Masses, // todo: instance it here as sub-struct later
 }
 
 impl Simulation {
@@ -31,6 +32,7 @@ impl Simulation {
             run_mode: true,
             frame_seconds_left: 0.,
             iterations_per_frame: 1.0,
+            masses: Masses::new(),
         }
     }
 
@@ -71,30 +73,31 @@ impl Simulation {
         self.text = text.to_string();
     }
 
-    pub fn calc_orbit_seconds(&mut self, masses: &Masses) {
+    pub fn calc_orbit_seconds(&mut self) {
         // All masses are there, calculate the simulation seconds by the maximal ui-orbit-time
         self.simulated_seconds_per_step =
-            masses.maximal_orbit_seconds() / INTENDED_FPS / self.ui_time_per_orbit;
+            self.masses.maximal_orbit_seconds() / INTENDED_FPS / self.ui_time_per_orbit;
     }
 
-    pub fn iterate_one_step(&mut self, masses: &mut Masses) {
-        masses.drag_and_move(self.simulated_seconds_per_step);
+    pub fn iterate_one_step(&mut self) {
+        self.masses.drag_and_move(self.simulated_seconds_per_step);
         self.simulated_seconds += self.simulated_seconds_per_step;
-        masses.inc_position();
+        self.masses.inc_position();
     }
 
     pub fn toggle_run_mode(&mut self) {
         self.run_mode = !self.run_mode;
     }
 
-    pub fn draw(&mut self, masses: &Masses, ship: &Ship) {
+    pub fn draw(&mut self, ship: &Ship) {
         draw_start();
-        draw_hud(&self.text, ship.speed(self, masses));
+        draw_hud(&self.text, ship.speed(self));
+        self.masses.draw(); // incl. prediction, follow, rotation
     }
 
     // SIMULATE / ITERATE //
     // Simulate / iterate to the next position to be drawn in the next loop
-    pub fn iterate(&mut self, masses: &mut Masses, ship: &mut Ship, frame_time: f64) {
+    pub fn iterate(&mut self, ship: &mut Ship, frame_time: f64) {
         if frame_time > INTENDED_FRAME_TIME {
             self.reduce_iterations();
             // println!("frame_time: {}", frame_time)
@@ -104,13 +107,13 @@ impl Simulation {
             self.frame_seconds_left -= INTENDED_FRAME_TIME / self.iterations_per_frame;
 
             if self.run_mode() {
-                ship.move_one_step(&self, masses);
+                ship.move_one_step(&self);
                 // also sets index to next step!:
-                self.iterate_one_step(masses);
+                self.iterate_one_step();
             }
 
             // Predict ship with new masses-posiitons-index or new burn-values etc.
-            ship.predict_positions(&self, &masses);
+            ship.predict_positions(&self);
         }
     }
 }

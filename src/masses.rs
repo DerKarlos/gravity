@@ -3,7 +3,6 @@
 
 use crate::canvas::*;
 use crate::mass::*;
-use crate::simulation::*;
 use crate::vec_space::*;
 use macroquad::prelude::RED;
 
@@ -175,14 +174,10 @@ impl Masses {
     }
 
     // initially simulate the future positinos
-    pub fn predict_positions(&mut self, simulation: &mut Simulation) {
-        // All masses are there, calculate the simulation seconds by the maximal orbit time (as ui-time!)
-        simulation.calc_orbit_seconds(self);
-
+    pub fn predict_positions(&mut self, simulated_seconds_per_step: f64) {
         for _ in 1..PREDICT_COUNT {
             self.inc_position();
-            self.drag_and_move(simulation.simulated_seconds_per_step());
-            //for _ in 0..simulation.interpolate() {/ simulation.interpolate() as f64}
+            self.drag_and_move(simulated_seconds_per_step);
         }
         self.inc_position(); // wrap to 0
     }

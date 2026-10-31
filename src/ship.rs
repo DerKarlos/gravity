@@ -1,5 +1,4 @@
 use crate::mass::*;
-use crate::masses::*;
 use crate::simulation::*;
 use crate::vec_space::*;
 
@@ -32,8 +31,10 @@ impl Ship {
         (self.burn_start, self.burn_seconds, self.burn_acceleration)
     }
 
-    pub fn speed(&self, simulation: &Simulation, masses: &Masses) -> f64 {
-        let pos_delta_per_predict_time = self.mass.delta_step(masses.predict_show() as usize);
+    pub fn speed(&self, simulation: &Simulation) -> f64 {
+        let pos_delta_per_predict_time = self
+            .mass
+            .delta_step(simulation.masses.predict_show() as usize);
         pos_delta_per_predict_time.length() / simulation.simulated_seconds_per_step() as f64
     }
 
@@ -53,15 +54,14 @@ impl Ship {
         println!("interpolate: {}", self.interpolate);
     }
 
-    pub fn set_in_orbit(&mut self, masses: &mut Masses, data: &MassData, orbits: usize) {
-        self.mass = masses.set_in_orbit(data, orbits);
+    pub fn set_in_orbit(&mut self, simulation: &mut Simulation, data: &MassData, orbits: usize) {
+        self.mass = simulation.masses.set_in_orbit(data, orbits);
     }
 
-    pub fn move_one_step(&mut self, simulation: &Simulation, masses: &Masses) {
+    pub fn move_one_step(&mut self, simulation: &Simulation) {
         self.move_one_step_interpolate(
             simulation,
-            masses,
-            masses.positions_index(),
+            simulation.masses.positions_index(),
             0, // ship vector allways starts at 0
             simulation.simulated_seconds(),
         );
@@ -70,7 +70,6 @@ impl Ship {
     pub fn move_one_step_interpolate(
         &mut self,
         simulation: &Simulation,
-        masses: &Masses,
         position_index: usize,
         vector_index: usize,
         simulated_seconds: f64,
@@ -80,7 +79,7 @@ impl Ship {
         for interpolation_step in 0..interpolate {
             let interpolated_seconds = simulation.simulated_seconds_per_step() / interpolate as f64;
             // lett all masses drag the ship
-            let acceleration_vector = masses.drag_at_position(
+            let acceleration_vector = simulation.masses.drag_at_position(
                 self.mass.position(),
                 position_index,
                 interpolation_step as f64 / interpolate as f64,
@@ -117,17 +116,16 @@ impl Ship {
 
     // prediktor for ship: save, predict, restore
     // (the ship is moved independend of masses positions_index)
-    pub fn predict_positions(&mut self, simulation: &Simulation, masses: &Masses) {
+    pub fn predict_positions(&mut self, simulation: &Simulation) {
         // save
         self.position = self.mass.position();
         self.velocity = self.mass.velocity();
 
         let mut simulated_seconds = simulation.simulated_seconds();
-        let mut position_index = masses.positions_index();
+        let mut position_index = simulation.masses.positions_index();
         for vector_index in 1..PREDICT_COUNT {
             self.move_one_step_interpolate(
                 simulation,
-                masses,
                 position_index,
                 vector_index,
                 simulated_seconds,
@@ -143,9 +141,9 @@ impl Ship {
         self.mass.set_velocity(self.velocity);
     }
 
-    pub fn draw(&self, masses: &Masses) {
+    pub fn draw(&self, simulation: &Simulation) {
         // The ship does not wrap the positions. Predictin always start at index 0
-        masses.draw_position_0(&self.mass);
+        simulation.masses.draw_position_0(&self.mass);
     }
 
     pub fn set_start_seconds(&mut self, set: f64) {
