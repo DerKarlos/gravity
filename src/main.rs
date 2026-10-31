@@ -6,6 +6,7 @@
 
 mod canvas;
 mod controls;
+mod mass;
 mod masses;
 mod scene;
 mod ship;

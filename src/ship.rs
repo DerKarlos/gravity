@@ -1,3 +1,4 @@
+use crate::mass::*;
 use crate::masses::*;
 use crate::simulation::*;
 use crate::vec_space::*;

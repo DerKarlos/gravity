@@ -1,4 +1,5 @@
 use crate::canvas::*;
+use crate::mass::*;
 use crate::masses::*;
 use crate::ship::*;
 use crate::simulation::*;

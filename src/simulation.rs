@@ -8,8 +8,6 @@ use crate::ship::*;
 pub const INTENDED_FPS: f64 = 50.; // frames per (ui) secound
 pub const INTENDED_FRAME_TIME: f64 = 1. / INTENDED_FPS;
 
-// ------------------- MASSES STRUCT/CLASS -------------------
-
 pub struct Simulation {
     // todo: no pub!!!!
     scene: i16,

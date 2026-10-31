@@ -1,4 +1,5 @@
 use crate::canvas::draw_set_view_z;
+use crate::mass::*;
 use crate::masses::*;
 use crate::ship::*;
 use crate::simulation::*;
