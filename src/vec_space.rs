@@ -48,6 +48,14 @@ impl ops::Mul<f64> for VecSpace {
     }
 }
 
+impl ops::Div<f64> for VecSpace {
+    type Output = Self;
+
+    fn div(self, scalar: f64) -> VecSpace {
+        VecSpace::new(self.x / scalar, self.y / scalar)
+    }
+}
+
 impl VecSpace {
     pub const ZERO: Self = Self { x: 0.0, y: 0.0 };
 

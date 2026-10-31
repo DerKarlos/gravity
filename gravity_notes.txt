@@ -5,9 +5,11 @@ Lagrange Kurs,
 
 TODO:
 ?burn time bei positions draw sichtbar machen (heller)
-Vector_Data & Orbit_Data
+Mass_Properties Mass_Vector & Mass_Orbit(mit Erd-radius?!)
+predict_path
 add_sub logic? cyclic? write &value?
 all scene-settings auch dynamisch/bedienbar
+Verwirrende Quersprünge zwischne Klassen bei einer Funktion; vermeidbar/verringerbar?
 
 --------------------
 Gravity Simulation (gravity, gravizen, attraction)

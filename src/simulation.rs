@@ -14,13 +14,12 @@ pub struct Simulation {
     // todo: no pub!!!!
     scene: i16,
     text: String,
-    pub ui_time_per_orbit: f64,
-    pub simulated_seconds: f64,
-    pub simulated_seconds_per_step: f64, // rename all step to frame ? No, a frame may execute multible frames
+    ui_time_per_orbit: f64,
+    simulated_seconds: f64,
+    simulated_seconds_per_step: f64,
     run_mode: bool,
-    follow: usize,
     frame_seconds_left: f64,
-    iterations: f64, // iteration steps per render frame
+    iterations_per_frame: f64,
 }
 
 impl Simulation {
@@ -32,10 +31,17 @@ impl Simulation {
             simulated_seconds: 0.0,
             simulated_seconds_per_step: 0.0,
             run_mode: true,
-            follow: 0,
             frame_seconds_left: 0.,
-            iterations: 1.0,
+            iterations_per_frame: 1.0,
         }
+    }
+
+    pub fn simulated_seconds(&self) -> f64 {
+        self.simulated_seconds
+    }
+
+    pub fn simulated_seconds_per_step(&self) -> f64 {
+        self.simulated_seconds_per_step
     }
 
     pub fn scene(&self) -> i16 {
@@ -47,18 +53,15 @@ impl Simulation {
     pub fn set_run_mode(&mut self, val: bool) {
         self.run_mode = val;
     }
-    pub fn set_follow(&mut self, val: usize) {
-        self.follow = val;
-    }
     pub fn add_iterations(&mut self, val: f64) {
-        self.iterations += val;
-        self.iterations = self.iterations.clamp(0.01, 2000.);
+        self.iterations_per_frame += val;
+        self.iterations_per_frame = self.iterations_per_frame.clamp(0.01, 2000.);
         //println!("add_speed: {}", self.speed);
     }
 
     pub fn reduce_iterations(&mut self) {
-        if self.iterations > 50. {
-            self.iterations /= 2.;
+        if self.iterations_per_frame > 50. {
+            self.iterations_per_frame /= 2.;
         }
         // println!("iterations: {}", self.iterations);
     }
@@ -78,8 +81,8 @@ impl Simulation {
 
     pub fn iterate_one_step(&mut self, masses: &mut Masses) {
         masses.drag_and_move(self.simulated_seconds_per_step);
-        masses.inc_position();
         self.simulated_seconds += self.simulated_seconds_per_step;
+        masses.inc_position();
     }
 
     pub fn toggle_run_mode(&mut self) {
@@ -87,19 +90,20 @@ impl Simulation {
     }
 
     pub fn draw(&mut self, masses: &Masses, ship: &Ship) {
-        if self.follow > 0 {
-            let position_of_followed_mass = masses.get_position_draw(self.follow);
-            draw_set_view_xy(position_of_followed_mass * -1.);
-        }
-        draw_hud(&self.text, ship.speed());
+        draw_start();
+        draw_hud(&self.text, ship.speed(self, masses));
     }
 
     // SIMULATE / ITERATE //
     // Simulate / iterate to the next position to be drawn in the next loop
-    pub fn iterate(&mut self, masses: &mut Masses, ship: &mut Ship, frame_seconds: f64) {
-        self.frame_seconds_left += frame_seconds;
+    pub fn iterate(&mut self, masses: &mut Masses, ship: &mut Ship, frame_time: f64) {
+        if frame_time > INTENDED_FRAME_TIME {
+            self.reduce_iterations();
+            // println!("frame_time: {}", frame_time)
+        }
+        self.frame_seconds_left += frame_time;
         while self.frame_seconds_left > INTENDED_FRAME_TIME {
-            self.frame_seconds_left -= INTENDED_FRAME_TIME / self.iterations;
+            self.frame_seconds_left -= INTENDED_FRAME_TIME / self.iterations_per_frame;
 
             if self.run_mode() {
                 ship.move_one_step(&self, masses);

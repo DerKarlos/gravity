@@ -9,7 +9,7 @@ use macroquad::prelude::{Color, RED};
 
 //////////////////// Parameter ////////////////////
 
-pub const PREDICT_COUNT: usize = 1000;
+pub const PREDICT_COUNT: usize = 1000; // ttt
 
 pub const GRAVITY_CONSTANT_OF_EARTH: f64 = 6.67384e-11; // m^3/(kg*s^2)
 
@@ -115,7 +115,7 @@ pub struct Mass {
     acceleration: VecSpace,
     velocity: VecSpace,
     position: VecSpace,
-    positions: [VecSpace; PREDICT_COUNT], // rename to future_positions ??? no, thy are real future positions
+    positions: [VecSpace; PREDICT_COUNT], // rename to trajectory ???
 }
 
 impl Mass {
@@ -173,6 +173,10 @@ impl Mass {
 
     pub fn velocity(&self) -> VecSpace {
         self.velocity
+    }
+
+    pub fn delta_step(&self, predict_show: usize) -> VecSpace {
+        self.positions[predict_show] - self.positions[(predict_show + 1) % PREDICT_COUNT]
     }
 
     pub fn set_velocity(&mut self, val: VecSpace) {
@@ -272,12 +276,21 @@ pub struct Masses {
     maximal_orbit_seconds: f64,
     // Calculated by the masses. Also needed and copied to the canvas.
     maximal_orbit_radius: f64,
-    pub predict_count: f64,
+    // Amound of visible prediction
+    predict_count: f64,
+    // Predict-index to show the mass
     predict_show: f64,
+    follow: i32,
+    rotation_a: usize, // why is this done in ship??? move to masses?
+    rotation_b: usize,
 }
 
 impl Masses {
     pub fn new() -> Masses {
+        if PREDICT_COUNT > 10000 {
+            panic!("PREDICT_COUNT>10000");
+        }
+
         Masses {
             masses: Vec::new(),
             positions_index: 0,
@@ -285,6 +298,9 @@ impl Masses {
             maximal_orbit_radius: 1.,
             predict_count: PREDICT_COUNT as f64,
             predict_show: 0.,
+            follow: -1, // not following
+            rotation_a: 0,
+            rotation_b: 0,
         }
     }
 
@@ -292,65 +308,73 @@ impl Masses {
         self.positions_index
     }
 
+    pub fn predict_show(&self) -> f64 {
+        self.predict_show
+    }
     pub fn maximal_orbit_seconds(&self) -> f64 {
         self.maximal_orbit_seconds
     }
 
-    pub fn set_predict(&mut self, count: f64, show: f64) {
-        self.predict_count = count;
-        self.predict_show = show;
-        //if self.predict_count > PREDICT_COUNT as f64 {
-        //    self.predict_count = PREDICT_COUNT as f64;
-        //};
-        //if self.predict_show > PREDICT_COUNT as f64 {
-        //    self.predict_show = PREDICT_COUNT as f64;
-        //};
+    pub fn set_predict_show_and_count(&mut self, count: f64, show: f64) {
+        self.predict_count = count.clamp(1., PREDICT_COUNT as f64); // range, limit
+        self.predict_show = show.clamp(0., self.predict_count as f64);
+    }
+
+    pub fn set_follow(&mut self, val: usize) {
+        self.follow = val as i32;
+    }
+
+    pub fn set_rotation(&mut self, a: usize, b: usize) {
+        self.rotation_a = a;
+        self.rotation_b = b;
     }
 
     pub fn mul_predict_count(&mut self, fakt: f64) {
-        self.predict_count *= fakt;
-        if self.predict_count > PREDICT_COUNT as f64 {
-            self.predict_count = PREDICT_COUNT as f64;
-        };
+        self.predict_count = (self.predict_count * fakt).clamp(1., PREDICT_COUNT as f64);
+        println!("predict_count: {}", self.predict_count);
     }
 
-    pub fn _set_predict_show(&mut self, val: f64) {
-        self.predict_show = val; // todo: use .min
+    pub fn add_predict_show(&mut self, val: f64) {
+        self.predict_show += val;
         if self.predict_show >= self.predict_count - 1. {
             self.predict_show = self.predict_count - 1.;
         }
     }
 
-    pub fn add_predict_show(&mut self, val: f64) {
-        self.predict_show += val;
-    }
-
-    pub fn add_at_place(&mut self, data: &MassData) -> usize {
+    pub fn add_at_place(&mut self, mass_data: &MassData) -> usize {
         let index = self.masses.len();
-        let (mass, _) = Mass::new(data, None, index);
-        println!("add_at_place: {}", index);
+        let (mass, _) = Mass::new(mass_data, None, index);
+        println!("\nadd_at_place: index={}", index);
+        println!("mass_data: {:?}", mass_data);
+        println!("mass p/v: {:?} {:?}", mass.position(), mass.velocity());
         self.masses.push(mass);
         index
     }
 
-    pub fn set_in_orbit(&mut self, data: &MassData, orbits_index: usize) -> Mass {
+    pub fn set_in_orbit(&mut self, mass_data: &MassData, orbits_index: usize) -> Mass {
         let index = self.masses.len();
-        println!("set_in_orbit: {} {}", index, orbits_index);
         let orbits = &mut self.masses[orbits_index];
-        let (mut mass, orbit_seconds) = Mass::new(data, Some(orbits), index);
+        let (mut mass, orbit_seconds) = Mass::new(mass_data, Some(orbits), index);
         mass.orbits = orbits_index;
-        self.maximal_orbit_radius = data.orbit_radius.abs().max(self.maximal_orbit_radius);
+        println!("\nset_in_orbit: index={} orbits={}", index, orbits_index);
+        println!("mass_data: {:?}", mass_data);
+        println!("mass p/v: {:?} {:?}", mass.position(), mass.velocity());
+        self.maximal_orbit_radius = mass_data.orbit_radius.abs().max(self.maximal_orbit_radius);
         println!("max orbit: {}", self.maximal_orbit_radius);
         self.maximal_orbit_seconds = self.maximal_orbit_seconds.max(orbit_seconds);
         mass
     }
 
-    pub fn add_in_orbit(&mut self, data: &MassData, orbits: usize, lagrange: i8) -> usize {
+    pub fn add_in_orbit_lagrange(&mut self, data: &MassData, orbits: usize, lagrange: i8) -> usize {
         let index = self.masses.len();
         let mut mass = self.set_in_orbit(data, orbits);
         mass.lagrange = lagrange;
         self.masses.push(mass);
         index
+    }
+
+    pub fn add_in_orbit(&mut self, data: &MassData, orbits: usize) -> usize {
+        self.add_in_orbit_lagrange(data, orbits, 0)
     }
 
     pub fn orbit_relativ_position(&self, mass_index: usize, predict_show: usize) -> VecSpace {
@@ -370,17 +394,22 @@ impl Masses {
         self.masses[index].positions[self.positions_index()]
     }
 
-    pub fn get_position_draw(&self, mass_index: usize) -> VecSpace {
+    pub fn get_draw_position(&self, mass_index: usize) -> VecSpace {
         let position_index = (self.positions_index + self.predict_show as usize) % PREDICT_COUNT;
         self.masses[mass_index].positions[position_index]
     }
 
-    pub fn drag_at_position(&self, position: VecSpace, index: usize) -> VecSpace {
-        let mut acceleration = VecSpace::ZERO;
+    pub fn drag_at_position(&self, position: VecSpace, index: usize, interpolate: f64) -> VecSpace {
+        let mut acceleration1 = VecSpace::ZERO;
+        let mut acceleration2 = VecSpace::ZERO;
+        let index2 = (index + 1) % PREDICT_COUNT;
         for mass in &self.masses {
-            acceleration += mass.get_drag_for_that_position(position, index)
+            acceleration1 += mass.get_drag_for_that_position(position, index)
         }
-        acceleration
+        for mass in &self.masses {
+            acceleration2 += mass.get_drag_for_that_position(position, index2)
+        }
+        acceleration1 * (1. - interpolate) + acceleration2 * interpolate
     }
 
     pub fn drag_and_move(&mut self, seconds: f64) {
@@ -407,12 +436,12 @@ impl Masses {
     // initially simulate the future positinos
     pub fn predict_positions(&mut self, simulation: &mut Simulation) {
         // All masses are there, calculate the simulation seconds by the maximal orbit time (as ui-time!)
-        simulation.simulated_seconds_per_step =
-            self.maximal_orbit_seconds() / INTENDED_FPS / simulation.ui_time_per_orbit;
+        simulation.calc_orbit_seconds(self);
 
         for _ in 1..PREDICT_COUNT {
             self.inc_position();
-            self.drag_and_move(simulation.simulated_seconds_per_step);
+            self.drag_and_move(simulation.simulated_seconds_per_step());
+            //for _ in 0..simulation.interpolate() {/ simulation.interpolate() as f64}
         }
         self.inc_position(); // wrap to 0
     }
@@ -426,7 +455,21 @@ impl Masses {
         mass.draw(0, self.predict_show as usize, self.predict_count);
     }
 
-    pub fn draw_masses(&self) {
+    pub fn draw(&self) {
+        if self.follow >= 0 {
+            let position_of_followed_mass = self.get_draw_position(self.follow as usize);
+            draw_set_view_xy(position_of_followed_mass * -1.);
+        }
+
+        let rotate = self.rotation_a != self.rotation_b;
+        if rotate {
+            let position_a = self.get_position(self.rotation_a);
+            let position_b = self.get_position(self.rotation_b);
+            let angle = (position_b - position_a).to_angle().to_degrees();
+            //println!("angle: {}", angle);
+            draw_set_view_angle(-angle);
+        }
+
         for mass in &self.masses {
             mass.draw(
                 self.positions_index,

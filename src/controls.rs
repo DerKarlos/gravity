@@ -28,7 +28,7 @@ pub struct Controls {
 
 impl Controls {
     pub fn new(ship: &Ship) -> Controls {
-        let (burn_start, burn_seconds, burn_a) = ship.get_burn_values();
+        let (burn_start, burn_seconds, burn_a) = ship.burn_values();
         Controls {
             x_view: AddSub::new("x_view", 50., 1., 1000.), // value, min, step, min
             y_view: AddSub::new("y_view", 50., 1., 1000.),
@@ -55,7 +55,7 @@ impl Controls {
                 }
 
                 'ß' => {
-                    let (burn_start, burn_seconds, burn_acceleration) = ship.get_burn_values();
+                    let (burn_start, burn_seconds, burn_acceleration) = ship.burn_values();
                     println!(
                         "burn start at {}s for {}s, a={}",
                         burn_start, burn_seconds, burn_acceleration
@@ -84,7 +84,7 @@ impl Controls {
         masses: &mut Masses,
         delta_time: f64,
     ) {
-        let (_, _, burn_acceleration) = ship.get_burn_values();
+        let (_, _, burn_acceleration) = ship.burn_values();
         if is_key_down(KeyCode::Space) {
             ship.accelerate_ahead(burn_acceleration * delta_time);
         }

@@ -30,66 +30,78 @@ pub fn set_scene(scene_id: i16) -> (Simulation, Masses, Ship) {
         1 => {
             simulation.set_text("double star");
             let sun = masses.add_at_place(&sol_data);
-            let _s2 = masses.add_in_orbit(&sun_data, sun, 0);
+            let _s2 = masses.add_in_orbit(&sun_data, sun);
         }
 
         2 => {
             simulation.set_text("Sun and two planets");
             let sun = masses.add_at_place(&sol_data);
-            masses.add_in_orbit(&big_dat1, sun, 0);
-            masses.add_in_orbit(&big_dat2, sun, 0);
+            masses.add_in_orbit(&big_dat1, sun);
+            masses.add_in_orbit(&big_dat2, sun);
             simulation.set_run_mode(false);
         }
 
         3 => {
             simulation.set_text("Sun, Earth");
             let sun = masses.add_at_place(&sol_data);
-            masses.add_in_orbit(&earth_data, sun, 0);
+            masses.add_in_orbit(&earth_data, sun);
         }
 
         4 => {
             simulation.set_text("Sun, Earth & Luna +");
             let sun0 = masses.add_at_place(&sol_data);
-            masses.add_in_orbit(&comet_data, sun0, 0);
-            let earth2 = masses.add_in_orbit(&earth_data, sun0, 0);
-            let _luna3 = masses.add_in_orbit(&luna_data, earth2, 0);
-            // simulation.set_follow(earth2);
+            masses.add_in_orbit(&comet_data, sun0);
+            let earth2 = masses.add_in_orbit(&earth_data, sun0);
+            let _luna3 = masses.add_in_orbit(&luna_data, earth2);
+            masses.set_follow(earth2);
             // ship.set_rotation(0., earth2, _luna3);
         }
 
         5 => {
             simulation.set_text("Earth & Luna & Ship");
             simulation.set_seconds_per_orbit(60.);
-            let earth = masses.add_at_place(&earth_data);
-            let _luna = masses.add_in_orbit(&luna_data, earth, 0);
-            ship.set_in_orbit(&mut masses, &ship_data.mul_radius(100.), earth); // The real 300km are not visible
+            let earth0 = masses.add_at_place(&earth_data);
+            let _luna1 = masses.add_in_orbit(&luna_data, earth0);
+            ship.set_in_orbit(&mut masses, &ship_data.mul_radius(100.), earth0); // The real 300km are not visible
         }
 
         6 => {
             simulation.set_text("Moon 8 loop (realy?)");
             let earth0 = masses.add_at_place(&earth_data);
-            let luna1 = masses.add_in_orbit(&luna_data.mul_radius(0.1), earth0, 0); // todo: real values ???
+            let luna1 = masses.add_in_orbit(&luna_data.mul_radius(0.1), earth0); // todo: real values ???
             ship.set_in_orbit(&mut masses, &ship_data.mul_radius(20.), earth0); // 26.6 The real 300km are not visible
             //ship.set_burn(3444., 13432.);
             //ship.set_burn(0., 13432.);
             ship.set_burn(3548., 13432.);
             //ship.set_burn_acceleration(0.3);
 
-            ship.set_rotation(0., earth0, luna1);
+            masses.set_rotation(earth0, luna1);
             //simulation.set_follow(luna1);
             simulation.set_run_mode(false);
-            masses.set_predict(300., 710.);
+            masses.set_predict_show_and_count(300., 710.);
         }
 
         7 => {
             simulation.set_text("Artemis II?");
+            // With real masses, the ship needs detailed/more time steps to have a sable orbit!
+            // Increasing the ship orbit or decreasing the Luna orbit makes it sable but is not the intendet solutin
+            // Slowing the simulation by 10000*10 works, but shows almost no predicted trajectory
+            // Set the prediction to 10*1000 is ok, more breaks the FPS load
+            // Subdivite a simulation step by 1000 for the ship helps, but makes the FPS load to high
+            // So wee need a compromise: subdivide by 100, multiply the orbit tiem by 10 and set the prediction to 10*1000
+            // The ship orbit still is odd: gets bigger and smaler ??? todo
+            //
+            // o1000*10+s10+viel"T" ist brauchbar(?)
+            simulation.set_seconds_per_orbit(1000. * 10.); // 10'000*10 =ok !! 1'000*10 Schiff-orbit eiert
+            ship.set_interpolate(10); // if orbit=100*10: 100= almost ok. OK with interpolation
             let earth0 = masses.add_at_place(&earth_data);
-            let luna1 = masses.add_in_orbit(&luna_data.mul_radius(0.1), earth0, 0);
-            ship.set_in_orbit(&mut masses, &ship_data.mul_radius(20.), earth0);
-            ship.set_burn(3548., 13432.);
-            ship.set_rotation(0., earth0, luna1);
-            simulation.set_run_mode(false);
-            masses.set_predict(300., 211.);
+            let _luna1 = masses.add_in_orbit(&luna_data.mul_radius(1.), earth0); // 0.005=OK, mehr eigert
+            ship.set_in_orbit(&mut masses, &ship_data.mul_radius(1.), earth0); // 500=ok 100=eiert
+            //ship.set_burn(3548., 13432.);
+            masses.set_follow(earth0);
+            //ship.set_rotation(0., earth0, luna1);
+            //masses.set_predict_show_and_count(300., 0.); // 300., 211.
+            simulation.set_run_mode(true);
         }
 
         // Idee: Flyby führt zu langsammer/schneller/andere Richtung/bis zu 180 grad umkehr
@@ -99,19 +111,19 @@ pub fn set_scene(scene_id: i16) -> (Simulation, Masses, Ship) {
             simulation.set_text("Lagrange 4/5");
 
             let sun0 = masses.add_at_place(&sol_data);
-            let earth1 = masses.add_in_orbit(&earth_data, sun0, 0);
+            let earth1 = masses.add_in_orbit_lagrange(&earth_data, sun0, 4);
             //t luna_data = MassData::orbiter("luna", RED, km(3476.), kg(7.349e22), km(370171.));
             let test_data = MassData::orbiter("test", WHITE, km(1.), kg(0.), km(5. * 370171.));
             //t test_data = MassData::orbiter("test", WHITE, km(1.), kg(0.), -km(1. * 1480111.));
-            let _test2 = masses.add_in_orbit(&test_data, earth1, 0);
+            let _test2 = masses.add_in_orbit(&test_data, earth1);
             // ship !!!!
             //ship.set_burn_acceleration(A_BURN * 1.);
             //ship.set_burn(0., 2222.);
             //ship.set_burn(0.08034150634335382, 4647.);
 
             draw_set_view_z(20.);
-            simulation.set_follow(earth1);
-            ship.set_rotation(0., earth1, sun0);
+            masses.set_follow(earth1);
+            masses.set_rotation(earth1, sun0);
             simulation.set_run_mode(false);
         }
 
@@ -122,9 +134,6 @@ pub fn set_scene(scene_id: i16) -> (Simulation, Masses, Ship) {
 
     // All masses are there, calculate the simulation seconds per iteration by the maximal ui-orbit-time
     simulation.calc_orbit_seconds(&masses);
-
-    simulation.simulated_seconds_per_step =
-        masses.maximal_orbit_seconds() / INTENDED_FPS / simulation.ui_time_per_orbit;
 
     masses.set_radius_to_draw();
 

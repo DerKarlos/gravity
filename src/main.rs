@@ -12,20 +12,13 @@ mod ship;
 mod simulation;
 mod vec_space;
 
-use canvas::draw_start;
 use controls::{Controls, KeyEvent};
 
 use macroquad::prelude::{get_frame_time, next_frame};
-//use masses::*;
-use scene::*;
-use simulation::*;
-
-//use crate::{canvas::draw_circle, vec_space::VecSpace};
+use scene::{SCENE, set_scene};
 
 #[macroquad::main("Gravity Sim Experience")]
 async fn main() {
-    // let (mut simulation, mut masses, mut ship, mut canvas) = set_scene(0);
-
     let (mut simulation, mut masses, mut ship) = set_scene(SCENE);
 
     let mut controls = Controls::new(&ship);
@@ -33,10 +26,7 @@ async fn main() {
     loop {
         // FRAMES //
         let frame_time: f64 = (get_frame_time() as f64).min(1.0123);
-        if frame_time > INTENDED_FRAME_TIME {
-            simulation.reduce_iterations();
-            // println!("frame_time: {}", frame_time)
-        }
+
         // INPUT //
         match controls.check_chars(&mut simulation, &ship) {
             KeyEvent::NONE => (),
@@ -53,9 +43,8 @@ async fn main() {
         simulation.iterate(&mut masses, &mut ship, frame_time);
 
         // DRAW //
-        draw_start();
         simulation.draw(&masses, &ship);
-        masses.draw_masses(); // incl. prediction
+        masses.draw(); // incl. prediction, follow, rotation
         ship.draw(&masses); // incl. prediction
 
         next_frame().await
