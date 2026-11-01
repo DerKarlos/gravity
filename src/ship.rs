@@ -1,4 +1,5 @@
 use crate::mass::*;
+use crate::masses::*;
 use crate::simulation::*;
 use crate::vec_space::*;
 
@@ -58,35 +59,42 @@ impl Ship {
         self.mass = simulation.masses.set_in_orbit(data, orbits);
     }
 
-    pub fn move_one_step(&mut self, simulation: &Simulation) {
+    pub fn move_one_step(
+        &mut self,
+        masses: &Masses,
+        simulated_seconds: f64,
+        simulated_seconds_per_step: f64,
+    ) {
         self.move_one_step_interpolate(
-            simulation,
-            simulation.masses.positions_index(),
+            masses,
+            masses.positions_index(),
             0, // ship vector allways starts at 0
-            simulation.simulated_seconds(),
+            simulated_seconds,
+            simulated_seconds_per_step,
         );
     }
 
     pub fn move_one_step_interpolate(
         &mut self,
-        simulation: &Simulation,
+        masses: &Masses,
         position_index: usize,
         vector_index: usize,
         simulated_seconds: f64,
+        simulated_seconds_per_step: f64,
     ) {
         let interpolate = self.interpolate();
 
         for interpolation_step in 0..interpolate {
-            let interpolated_seconds = simulation.simulated_seconds_per_step() / interpolate as f64;
+            let interpolated_seconds = simulated_seconds_per_step / interpolate as f64;
             // lett all masses drag the ship
-            let acceleration_vector = simulation.masses.drag_at_position(
+            let acceleration_vector = masses.drag_at_position(
                 self.mass.position(),
                 position_index,
                 interpolation_step as f64 / interpolate as f64,
             );
             self.mass.ship_accelerate_vec(acceleration_vector);
             self.burn(
-                simulation.simulated_seconds_per_step(),
+                simulated_seconds_per_step,
                 simulated_seconds + interpolated_seconds,
             );
 
@@ -116,24 +124,30 @@ impl Ship {
 
     // prediktor for ship: save, predict, restore
     // (the ship is moved independend of masses positions_index)
-    pub fn predict_positions(&mut self, simulation: &Simulation) {
+    pub fn predict_positions(
+        &mut self,
+        masses: &Masses,
+        simulated_seconds: f64,
+        simulated_seconds_per_step: f64,
+    ) {
         // save
         self.position = self.mass.position();
         self.velocity = self.mass.velocity();
 
-        let mut simulated_seconds = simulation.simulated_seconds();
-        let mut position_index = simulation.masses.positions_index();
+        let mut simulated_seconds = simulated_seconds;
+        let mut position_index = masses.positions_index();
         for vector_index in 1..PREDICT_COUNT {
             self.move_one_step_interpolate(
-                simulation,
+                &masses,
                 position_index,
                 vector_index,
                 simulated_seconds,
+                simulated_seconds_per_step,
             );
 
             position_index += 1;
             position_index %= PREDICT_COUNT;
-            simulated_seconds += simulation.simulated_seconds_per_step();
+            simulated_seconds += simulated_seconds_per_step;
         }
 
         // restore
@@ -141,9 +155,9 @@ impl Ship {
         self.mass.set_velocity(self.velocity);
     }
 
-    pub fn draw(&self, simulation: &Simulation) {
+    pub fn draw(&self, masses: &Masses) {
         // The ship does not wrap the positions. Predictin always start at index 0
-        simulation.masses.draw_position_0(&self.mass);
+        masses.draw_position_0(&self.mass);
     }
 
     pub fn set_start_seconds(&mut self, set: f64) {

@@ -20,32 +20,31 @@ use scene::{SCENE, set_scene};
 
 #[macroquad::main("Gravity Sim Experience")]
 async fn main() {
-    let (mut simulation, mut ship) = set_scene(SCENE);
+    let mut simulation = set_scene(SCENE);
 
-    let mut controls = Controls::new(&ship);
+    let mut controls = Controls::new(&simulation.ships[0]);
 
     loop {
         // FRAMES //
         let frame_time: f64 = (get_frame_time() as f64).min(1.0123);
 
         // INPUT //
-        match controls.check_chars(&mut simulation, &ship) {
+        match controls.check_chars(&mut simulation) {
             KeyEvent::NONE => (),
             KeyEvent::BREAK => break,
             KeyEvent::SceneID(id) => {
                 canvas::draw_reset();
-                (simulation, ship) = set_scene(id);
-                controls = Controls::new(&ship);
+                simulation = set_scene(id);
+                controls = Controls::new(&simulation.ships[0]);
             }
         }
-        controls.check_keys(&mut simulation, &mut ship, frame_time);
+        controls.check_keys(&mut simulation, frame_time);
 
         // SIMULATE / ITERATE //
-        simulation.iterate(&mut ship, frame_time);
+        simulation.iterate(frame_time);
 
         // DRAW //
-        simulation.draw(&ship);
-        ship.draw(&simulation); // incl. prediction
+        simulation.draw();
 
         next_frame().await
     }

@@ -43,7 +43,7 @@ impl Controls {
         }
     }
 
-    pub fn check_chars(&self, simulation: &mut Simulation, ship: &Ship) -> KeyEvent {
+    pub fn check_chars(&self, simulation: &mut Simulation) -> KeyEvent {
         if let Some(char) = get_char_pressed() {
             // println!("pressed char {:?}!", char);
             match char {
@@ -55,7 +55,8 @@ impl Controls {
                 }
 
                 'ß' => {
-                    let (burn_start, burn_seconds, burn_acceleration) = ship.burn_values();
+                    let (burn_start, burn_seconds, burn_acceleration) =
+                        simulation.ships[0].burn_values();
                     println!(
                         "burn start at {}s for {}s, a={}",
                         burn_start, burn_seconds, burn_acceleration
@@ -77,26 +78,27 @@ impl Controls {
         KeyEvent::NONE
     }
 
-    pub fn check_keys(&mut self, simulation: &mut Simulation, ship: &mut Ship, delta_time: f64) {
-        let (_, _, burn_acceleration) = ship.burn_values();
+    pub fn check_keys(&mut self, simulation: &mut Simulation, delta_time: f64) {
+        let (_, _, burn_acceleration) = simulation.ships[0].burn_values();
         if is_key_down(KeyCode::Space) {
-            ship.accelerate_ahead(burn_acceleration * delta_time);
+            simulation.ships[0].accelerate_ahead(burn_acceleration * delta_time);
         }
         if is_key_down(KeyCode::Backspace) {
-            ship.accelerate_ahead(-burn_acceleration * delta_time)
+            simulation.ships[0].accelerate_ahead(-burn_acceleration * delta_time)
         }
 
-        ship.set_start_seconds(
+        simulation.ships[0].set_start_seconds(
             self.burn_start
                 .up_down(KeyCode::Right, KeyCode::Left, delta_time), // ui-time
         );
 
-        ship.set_burn_seconds(
-            self.burn_seconds
-                .up_down(KeyCode::Up, KeyCode::Down, delta_time),
-        );
+        simulation.ships[0].set_burn_seconds(self.burn_seconds.up_down(
+            KeyCode::Up,
+            KeyCode::Down,
+            delta_time,
+        ));
 
-        ship.set_burn_acceleration(self.burn_acceleration.up_down(
+        simulation.ships[0].set_burn_acceleration(self.burn_acceleration.up_down(
             KeyCode::RightBracket,
             KeyCode::Apostrophe,
             delta_time,

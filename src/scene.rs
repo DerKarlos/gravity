@@ -5,9 +5,9 @@ use crate::simulation::*;
 // for colours
 use macroquad::prelude::*;
 
-pub const SCENE: i16 = 7;
+pub const SCENE: i16 = 5;
 
-pub fn set_scene(scene_id: i16) -> (Simulation, Ship) {
+pub fn set_scene(scene_id: i16) -> Simulation {
     let mut simulation = Simulation::new(scene_id);
     let mut ship = Ship::default();
 
@@ -148,7 +148,13 @@ pub fn set_scene(scene_id: i16) -> (Simulation, Ship) {
     simulation
         .masses
         .predict_positions(simulation.simulated_seconds_per_step());
-    ship.predict_positions(&simulation);
+    ship.predict_positions(
+        &simulation.masses,
+        simulation.simulated_seconds(),
+        simulation.simulated_seconds_per_step(),
+    );
 
-    (simulation, ship)
+    simulation.ships.push(ship);
+
+    simulation
 }

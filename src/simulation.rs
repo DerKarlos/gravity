@@ -19,6 +19,7 @@ pub struct Simulation {
     frame_seconds_left: f64,
     iterations_per_frame: f64,
     pub masses: Masses, // todo: instance it here as sub-struct later
+    pub ships: Vec<Ship>,
 }
 
 impl Simulation {
@@ -33,6 +34,7 @@ impl Simulation {
             frame_seconds_left: 0.,
             iterations_per_frame: 1.0,
             masses: Masses::new(),
+            ships: Vec::new(),
         }
     }
 
@@ -89,15 +91,18 @@ impl Simulation {
         self.run_mode = !self.run_mode;
     }
 
-    pub fn draw(&mut self, ship: &Ship) {
+    pub fn draw(&mut self) {
         draw_start();
-        draw_hud(&self.text, ship.speed(self));
+        draw_hud(&self.text, self.ships[0].speed(self));
         self.masses.draw(); // incl. prediction, follow, rotation
+        for ship in &mut self.ships {
+            ship.draw(&self.masses); // incl. prediction
+        }
     }
 
     // SIMULATE / ITERATE //
     // Simulate / iterate to the next position to be drawn in the next loop
-    pub fn iterate(&mut self, ship: &mut Ship, frame_time: f64) {
+    pub fn iterate(&mut self, frame_time: f64) {
         if frame_time > INTENDED_FRAME_TIME {
             self.reduce_iterations();
             // println!("frame_time: {}", frame_time)
@@ -107,13 +112,26 @@ impl Simulation {
             self.frame_seconds_left -= INTENDED_FRAME_TIME / self.iterations_per_frame;
 
             if self.run_mode() {
-                ship.move_one_step(&self);
+                for ship in &mut self.ships {
+                    ship.move_one_step(
+                        &self.masses,
+                        self.simulated_seconds,
+                        self.simulated_seconds_per_step,
+                    );
+                }
+
                 // also sets index to next step!:
                 self.iterate_one_step();
             }
 
             // Predict ship with new masses-posiitons-index or new burn-values etc.
-            ship.predict_positions(&self);
+            for ship in &mut self.ships {
+                ship.predict_positions(
+                    &mut self.masses,
+                    self.simulated_seconds,
+                    self.simulated_seconds_per_step,
+                );
+            }
         }
     }
 }
