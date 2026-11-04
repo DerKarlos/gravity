@@ -1,6 +1,6 @@
 //! Draw object on a canvas
 
-use crate::vec_space::*;
+use crate::{mass::PREDICT_COUNT, vec_space::*};
 use macroquad::prelude::*;
 use std::sync::{Mutex, OnceLock};
 
@@ -162,10 +162,26 @@ pub fn draw_circle(position: VecSpace, diameter: f64, color: Color) {
     macroquad::shapes::draw_circle(x, y, size, color);
 }
 
+// A draw_rectangles would meed predictcount and positions_index. Not the job of a drawer
 pub fn draw_rectangle(position: VecSpace, color: Color) {
     let canvas = canvas().lock().unwrap();
     let (x, y) = canvas.to_pixel(position);
     macroquad::shapes::draw_rectangle(x, y, 1., 1., color);
+}
+
+pub fn _draw_rectangles(
+    positions: &[VecSpace; PREDICT_COUNT],
+    color: Color,
+    positions_index: usize,
+    predict_count: usize,
+) {
+    let canvas = canvas().lock().unwrap();
+    for index in 0..predict_count {
+        let index = (index + positions_index) % PREDICT_COUNT;
+        let position = positions[index];
+        let (x, y) = canvas.to_pixel(position);
+        macroquad::shapes::draw_rectangle(x, y, 1., 1., color);
+    }
 }
 
 pub fn draw_hud(text: &String, ship_speed: f64) {

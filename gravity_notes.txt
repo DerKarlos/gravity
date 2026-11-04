@@ -1,5 +1,5 @@
 DOING/TESTING/CHECKING:
-orbit um orbit
+orbit um orbit: mit interpolation, verschieden weite prediction(sat:mond=16:1)
 Lagrange Kurs,
 
 

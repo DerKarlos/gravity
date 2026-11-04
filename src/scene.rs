@@ -2,10 +2,17 @@ use crate::canvas::draw_set_view_z;
 use crate::mass::*;
 use crate::ship::*;
 use crate::simulation::*;
+use crate::vec_space::VecSpace;
 // for colours
 use macroquad::prelude::*;
 
-pub const SCENE: i16 = 5;
+pub const SCENE: i16 = 3;
+
+const EARTH: MassProperties = MassProperties::new("earth", mass_earth(1.), km(12756.32), BLUE);
+const SOL: MassProperties = MassProperties::new("sun", mass_sol(1.0), km(1.3914e6), YELLOW);
+
+const CENTER_VECTOR: MassVector = MassVector::new(VecSpace::ZERO, VecSpace::ZERO);
+const EARTH_ORBIT: MassOrbit = MassOrbit::new(au(1.), 0.0);
 
 pub fn set_scene(scene_id: i16) -> Simulation {
     let mut simulation = Simulation::new(scene_id);
@@ -42,8 +49,14 @@ pub fn set_scene(scene_id: i16) -> Simulation {
 
         3 => {
             simulation.set_text("Sun, Earth");
-            let sun = simulation.masses.add_at_place(&sol_data);
-            simulation.masses.add_in_orbit(&earth_data, sun);
+            //let sun = simulation.masses.add_at_place(&sol_data);
+            let sun = simulation.masses.add_by_vector(&SOL, &CENTER_VECTOR); // & or not & ???
+            if false {
+                simulation.masses.add_in_orbit(&earth_data, sun);
+            } else {
+                simulation.masses.add_by_orbit(&EARTH, &EARTH_ORBIT, sun);
+            }
+            simulation.set_run_mode(false);
         }
 
         4 => {

@@ -63,6 +63,10 @@ impl VecSpace {
         Self { x, y }
     }
 
+    //pub fn default() -> VecSpace {
+    //    VecSpace::ZERO
+    //}
+
     pub fn _set_x(&mut self, val: f64) {
         self.x = val;
     }

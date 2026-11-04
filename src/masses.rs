@@ -91,10 +91,44 @@ impl Masses {
         index
     }
 
+    // DIE NEUEN SIND "BY"
+    pub fn add_by_vector(&mut self, properties: &MassProperties, vector: &MassVector) -> usize {
+        let index = self.masses.len();
+        let (mass, _) = Mass::new_at_vector(properties, vector, index);
+        println!("\nadd_by_vector: index={}", index);
+        println!("properties: {:?}", properties);
+        println!("mass p/v: {:?} {:?}", mass.position(), mass.velocity());
+        self.masses.push(mass);
+        index
+    }
+
+    pub fn add_by_orbit(
+        &mut self,
+        properties: &MassProperties,
+        orbit: &MassOrbit,
+        orbits_index: usize,
+    ) -> Mass {
+        let index = self.masses.len();
+        let orbits = &mut self.masses[orbits_index];
+
+        let (mut mass, orbit_seconds) = Mass::new_in_orbit(properties, orbit, orbits, index);
+
+        mass.orbits = orbits_index;
+        println!("\nadd_by_orbit: index={} orbits={}", index, orbits_index);
+        println!("properties: {:?}", properties);
+        println!("mass p/v: {:?} {:?}", mass.position(), mass.velocity());
+        self.maximal_orbit_radius = orbit.radius.abs().max(self.maximal_orbit_radius);
+        println!("max orbit: {}", self.maximal_orbit_radius);
+        self.maximal_orbit_seconds = self.maximal_orbit_seconds.max(orbit_seconds);
+        mass
+    }
+
     pub fn set_in_orbit(&mut self, mass_data: &MassData, orbits_index: usize) -> Mass {
         let index = self.masses.len();
         let orbits = &mut self.masses[orbits_index];
+
         let (mut mass, orbit_seconds) = Mass::new(mass_data, Some(orbits), index);
+
         mass.orbits = orbits_index;
         println!("\nset_in_orbit: index={} orbits={}", index, orbits_index);
         println!("mass_data: {:?}", mass_data);
