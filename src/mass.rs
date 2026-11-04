@@ -43,18 +43,6 @@ pub const fn mass_sol(sol: f64) -> f64 {
 // ------------------- MASS-DATA STRUCT/CLASS -------------------
 
 #[derive(Debug, Default, Clone, Copy)]
-pub struct MassData<'a> {
-    name: &'a str,
-    color: Color,
-    diameter: f64,
-    mass: f64,
-    pub orbit_radius: f64,
-    excentricity: f64,
-}
-
-// ------------------- MASS-DATA STRUCT/CLASS -------------------
-
-#[derive(Debug, Default, Clone, Copy)]
 pub struct MassProperties<'a> {
     name: &'a str,
     mass: f64,
@@ -79,6 +67,11 @@ pub struct MassVector {
     velocity: VecSpace,
 }
 impl MassVector {
+    pub const ZERO: Self = Self {
+        position: VecSpace::ZERO,
+        velocity: VecSpace::ZERO,
+    };
+
     pub const fn new(position: VecSpace, velocity: VecSpace) -> MassVector {
         MassVector { position, velocity }
     }
@@ -89,13 +82,29 @@ pub struct MassOrbit {
     pub radius: f64,
     excentricity: f64,
 }
+
 impl MassOrbit {
+    pub const ZERO: Self = Self {
+        radius: 0.,
+        excentricity: 0.,
+    };
+
     pub const fn new(radius: f64, excentricity: f64) -> MassOrbit {
         MassOrbit {
             radius,
             excentricity,
         }
     }
+}
+
+#[derive(Debug, Default, Clone, Copy)]
+pub struct MassData<'a> {
+    name: &'a str,
+    color: Color,
+    diameter: f64,
+    mass: f64,
+    pub orbit_radius: f64,
+    excentricity: f64,
 }
 
 impl<'a> MassData<'a> {
@@ -179,58 +188,6 @@ impl Mass {
         }
     }
 
-    pub fn new_at_vector(
-        properties: &MassProperties,
-        vector: &MassVector,
-        index: usize,
-    ) -> (Mass, f64) {
-        let mut mass = Mass {
-            _name: properties.name.to_string(),
-            index,
-            color: properties.color,
-            diameter: properties.diameter,
-            orbits: 0,
-            lagrange: 0,
-            mass: properties.mass,
-            position: vector.position,
-            velocity: vector.velocity,
-            acceleration: VecSpace::ZERO,
-            positions: [VecSpace::ZERO; PREDICT_COUNT],
-        };
-
-        let orbit_seconds: f64 = 0.;
-        mass.positions[0] = mass.position;
-        (mass, orbit_seconds)
-    }
-
-    pub fn new_in_orbit(
-        properties: &MassProperties,
-        orbit: &MassOrbit,
-        orbited_mass: &mut Mass,
-        index: usize,
-    ) -> (Mass, f64) {
-        let mut mass = Mass {
-            _name: properties.name.to_string(),
-            index,
-            color: properties.color,
-            diameter: properties.diameter,
-            orbits: 0,
-            lagrange: 0,
-            mass: properties.mass,
-            position: VecSpace::ZERO,
-            velocity: VecSpace::ZERO,
-            acceleration: VecSpace::ZERO,
-            positions: [VecSpace::ZERO; PREDICT_COUNT],
-        };
-
-        mass.orbits = orbited_mass.index;
-        mass.position += VecSpace::new(orbit.radius, 0.); // + orbited_mass.position; done by set_v_orbit
-        let orbit_seconds = Self::set_v_orbit(&mut mass, orbited_mass, orbit.excentricity);
-
-        mass.positions[0] = mass.position;
-        (mass, orbit_seconds)
-    }
-
     // pub for new ship
     pub fn new(data: &MassData, orbits: Option<&mut Mass>, index: usize) -> (Mass, f64) {
         let mut mass = Mass {
@@ -255,32 +212,30 @@ impl Mass {
         };
 
         mass.positions[0] = mass.position;
+        //println!("mass: {:?}", mass);
         (mass, orbit_seconds)
     }
 
     // pub struct MassData<'a> {
     //     name: &'a str,
 
-    pub fn _ne2(
-        name: &str,
-        color: Color,
-        diameter: f64,
-        mass: f64,
-        orbit_radius: f64,
-        excentricity: f64,
+    pub fn new2(
+        properties: MassProperties,
+        vector: MassVector,
+        orbit: MassOrbit,
         orbits: Option<&mut Mass>,
         index: usize,
     ) -> (Mass, f64) {
         let mut mass = Mass {
-            _name: name.to_string(),
+            _name: properties.name.to_string(),
             index,
-            color,
-            diameter,
+            color: properties.color,
+            diameter: properties.diameter,
             orbits: 0,
             lagrange: 0,
-            mass,
-            position: VecSpace::ZERO,
-            velocity: VecSpace::ZERO,
+            mass: properties.mass,
+            position: vector.position,
+            velocity: vector.velocity,
             acceleration: VecSpace::ZERO,
             positions: [VecSpace::ZERO; PREDICT_COUNT],
         };
@@ -288,11 +243,12 @@ impl Mass {
         let mut orbit_seconds: f64 = 0.;
         if let Some(orbited_mass) = orbits {
             mass.orbits = orbited_mass.index;
-            mass.position += VecSpace::new(orbit_radius, 0.); // + orbited_mass.position; done by set_v_orbit
-            orbit_seconds = Self::set_v_orbit(&mut mass, orbited_mass, excentricity);
+            mass.position += VecSpace::new(orbit.radius, 0.); // + orbited_mass.position; done by set_v_orbit
+            orbit_seconds = Self::set_v_orbit(&mut mass, orbited_mass, orbit.excentricity);
         };
 
         mass.positions[0] = mass.position;
+        //println!("mass: {:?}", mass);
         (mass, orbit_seconds)
     }
 

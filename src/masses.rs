@@ -6,6 +6,8 @@ use crate::mass::*;
 use crate::vec_space::*;
 use macroquad::prelude::RED;
 
+// ------------------- MASS-DATA STRUCT/CLASS -------------------
+
 // masses-values, calcualted while creating the masses
 #[derive(Debug, Clone)]
 pub struct Masses {
@@ -81,7 +83,7 @@ impl Masses {
         }
     }
 
-    pub fn add_at_place(&mut self, mass_data: &MassData) -> usize {
+    pub fn ___add_at_place(&mut self, mass_data: &MassData) -> usize {
         let index = self.masses.len();
         let (mass, _) = Mass::new(mass_data, None, index);
         println!("\nadd_at_place: index={}", index);
@@ -92,9 +94,16 @@ impl Masses {
     }
 
     // DIE NEUEN SIND "BY"
-    pub fn add_by_vector(&mut self, properties: &MassProperties, vector: &MassVector) -> usize {
+    // add_at_center ???
+    pub fn add_by_center(&mut self, properties: MassProperties) -> usize {
+        self.add_by_vector(properties, MassVector::ZERO)
+    }
+
+    pub fn add_by_vector(&mut self, properties: MassProperties, vector: MassVector) -> usize {
         let index = self.masses.len();
-        let (mass, _) = Mass::new_at_vector(properties, vector, index);
+
+        let (mass, _) = Mass::new2(properties, vector, MassOrbit::ZERO, None, index);
+
         println!("\nadd_by_vector: index={}", index);
         println!("properties: {:?}", properties);
         println!("mass p/v: {:?} {:?}", mass.position(), mass.velocity());
@@ -104,23 +113,25 @@ impl Masses {
 
     pub fn add_by_orbit(
         &mut self,
-        properties: &MassProperties,
-        orbit: &MassOrbit,
+        properties: MassProperties,
+        orbit: MassOrbit,
         orbits_index: usize,
-    ) -> Mass {
+    ) -> usize {
         let index = self.masses.len();
         let orbits = &mut self.masses[orbits_index];
 
-        let (mut mass, orbit_seconds) = Mass::new_in_orbit(properties, orbit, orbits, index);
+        let (mut mass, orbit_seconds) =
+            Mass::new2(properties, MassVector::ZERO, orbit, Some(orbits), index);
 
         mass.orbits = orbits_index;
+        self.maximal_orbit_radius = orbit.radius.abs().max(self.maximal_orbit_radius);
+        self.maximal_orbit_seconds = self.maximal_orbit_seconds.max(orbit_seconds);
         println!("\nadd_by_orbit: index={} orbits={}", index, orbits_index);
         println!("properties: {:?}", properties);
         println!("mass p/v: {:?} {:?}", mass.position(), mass.velocity());
-        self.maximal_orbit_radius = orbit.radius.abs().max(self.maximal_orbit_radius);
         println!("max orbit: {}", self.maximal_orbit_radius);
-        self.maximal_orbit_seconds = self.maximal_orbit_seconds.max(orbit_seconds);
-        mass
+        self.masses.push(mass);
+        index
     }
 
     pub fn set_in_orbit(&mut self, mass_data: &MassData, orbits_index: usize) -> Mass {
@@ -130,16 +141,21 @@ impl Masses {
         let (mut mass, orbit_seconds) = Mass::new(mass_data, Some(orbits), index);
 
         mass.orbits = orbits_index;
+        self.maximal_orbit_radius = mass_data.orbit_radius.abs().max(self.maximal_orbit_radius);
+        self.maximal_orbit_seconds = self.maximal_orbit_seconds.max(orbit_seconds);
         println!("\nset_in_orbit: index={} orbits={}", index, orbits_index);
         println!("mass_data: {:?}", mass_data);
         println!("mass p/v: {:?} {:?}", mass.position(), mass.velocity());
-        self.maximal_orbit_radius = mass_data.orbit_radius.abs().max(self.maximal_orbit_radius);
         println!("max orbit: {}", self.maximal_orbit_radius);
-        self.maximal_orbit_seconds = self.maximal_orbit_seconds.max(orbit_seconds);
         mass
     }
 
-    pub fn add_in_orbit_lagrange(&mut self, data: &MassData, orbits: usize, lagrange: i8) -> usize {
+    pub fn ___add_in_orbit_lagrange(
+        &mut self,
+        data: &MassData,
+        orbits: usize,
+        lagrange: i8,
+    ) -> usize {
         let index = self.masses.len();
         let mut mass = self.set_in_orbit(data, orbits);
         mass.lagrange = lagrange;
@@ -147,8 +163,8 @@ impl Masses {
         index
     }
 
-    pub fn add_in_orbit(&mut self, data: &MassData, orbits: usize) -> usize {
-        self.add_in_orbit_lagrange(data, orbits, 0)
+    pub fn ___add_in_orbit(&mut self, data: &MassData, orbits: usize) -> usize {
+        self.___add_in_orbit_lagrange(data, orbits, 0)
     }
 
     pub fn orbit_relativ_position(&self, mass_index: usize, predict_show: usize) -> VecSpace {
